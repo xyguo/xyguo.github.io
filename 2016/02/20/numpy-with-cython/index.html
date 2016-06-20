@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>Numpy with Cython | Coupon Collector</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="从以前的博客搬来的老文，记录了一次对SGD算法的优化">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Numpy with Cython">
+<meta property="og:url" content="http://yoursite.com/2016/02/20/numpy-with-cython/index.html">
+<meta property="og:site_name" content="Coupon Collector">
+<meta property="og:description" content="从以前的博客搬来的老文，记录了一次对SGD算法的优化">
+<meta property="og:updated_time" content="2016-06-20T08:05:02.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Numpy with Cython">
+<meta name="twitter:description" content="从以前的博客搬来的老文，记录了一次对SGD算法的优化">
+  
+    <link rel="alternate" href="/atom.xml" title="Coupon Collector" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Coupon Collector</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">miscellaneous notes</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+          <a class="main-nav-link" href="/links">Links</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-numpy-with-cython" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/02/20/numpy-with-cython/" class="article-date">
+  <time datetime="2016-02-20T07:29:22.000Z" itemprop="datePublished">2016-02-20</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/programming/">programming</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Numpy with Cython
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>本文所用的例子来自一个编程作业。在该作业中要求实现一个集成学习算法，其中的主要部分就是训练多个感知机（Perceptron）。这里的感知机就是一个简单的线性分类器$f(\mathbf{x})=\text{sign}(\mathbf{w}^\top\mathbf{x}+b)$。假设训练样本为<br>$$<br>D={(\mathbf{x_1}, y_1),\ldots, (\mathbf{x}_N, y_N)}, \quad\mathbf{x}_i\in\mathbb{R}^D, y_i\in{0, 1}<br>$$<br>取$y’_i=2y_i-1$，则训练过程中参数的基本更新规则为<br>$$<br>\mathbf{w}^{(t+1)}=\mathbf{w}^{(t)}+\eta^{(t)} y’_i\mathbf{x}_i \quad\text{if}\quad y’_i(\mathbf{x}_i^\top\mathbf{w}^{(t)}+b^{(t)})&lt;0<br>$$<br>这其实就是基于hinge loss的SGD算法，其中$t$是迭代轮数，$\eta^{(t)}$是第$t$轮的步长，$\mathbf{x}_i$是随机sample的一个instance。在具体实现时可能会对上述规则做一些细微的修改，但基本规则不会有什么变化。</p>
+<p>对于科学计算的任务（尤其是涉及到矩阵操作的任务），已经存在很好的Python数值计算库：<code>Numpy</code>与<code>Scipy</code>。其中<code>Numpy</code>实现了一个高效的（稠密）矩阵类型——<code>numpy.ndarray</code>，<code>Scipy</code>则提供了多种稀疏矩阵类型，且两个库之间还具有很好的互操作性。写过Matlab的同学肯定知道这样一条要诀：“任何能用矩阵操作的地方都不要用循环”。在用Python做科学计算时也有相同的原则，因为<code>Numpy</code>提供的矩阵操作其实都是对底层C程序的封装，可以完全离开Python解释器工作，因此速度相比于用<code>for</code>循环会快上很多倍（不过Python的解释器其实已经很快了，如果以后Pypy对<code>Numpy</code>的支持能够得到完善，那有些时候直接用<code>for</code>循环也是可以接受的）。但是总有这么些个算法，用矩阵操作来写就是不方便，而这里我们将要实现的SGD算法就是其中之一。</p>
+<p>为什么Python这么慢？主要原因有两个：</p>
+<ul>
+<li><p>Python是一门解释型的（interpreted）语言，Python源代码在执行时会先编译成一种特殊的字节码（bytecode），然后交予Python虚拟机负责执行，这比直接编译成二进制的可执行文件（C/C++就是这样）来说就慢了不少。</p>
+</li>
+<li><p>Python是一门动态类型的（dynamically typed）语言，变量的具体类型只有在运行时才可知。事实上，Python解释器大部分时间都在干这么件事：弄清楚一个变量的当前类型到底是什么，然后把它底层的数据抽取出来进行运算。例如对<code>a+b</code>这条语句，解释器首先要查询某个表确定<code>a</code>和<code>b</code>的当前类型，然后确定该类型是否支持<code>+</code>操作，并把实际执行该操作的函数提取出来，接下来把<code>a</code>和<code>b</code>作为参数传给上述函数，而在该函数内部，则得先把<code>a</code>、<code>b</code>底层的数据取出来，完成实际的运算，再把结果包装成一个Python Object返回。整个过程会产生多次查询操作，且产生生成新的Python Object还需要在堆（heap）上分配空间。如果是C代码，由于已知<code>a</code>与<code>b</code>的类型，这个加法操作不过是一两条CPU指令的功夫。</p>
+</li>
+</ul>
+<p>Python社区为这个问题提供了一个方便的解决方案：Cython。你可以简单地认为Cython是一种介于Python和C之间的编程语言，它为Python引入了C的静态类型系统（static type system），使得我们可以将Python代码和C代码无缝衔接。除此之外Cython还可以封装C/C++的动态链接库并提供针对Python的接口。最关键的是，用Cython操作<code>numpy.ndarray</code>非常方便，通过调用<code>numpy.ndarray.data</code>可以直接访问其在底层封装的C数组。</p>
+<h2 id="Step-0：原始Python程序"><a href="#Step-0：原始Python程序" class="headerlink" title="Step 0：原始Python程序"></a>Step 0：原始Python程序</h2><p>下面是初版的程序，注意这是一个纯Python程序：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># sgd.py</span></span><br><span class="line"><span class="keyword">from</span> __future__ <span class="keyword">import</span> division</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> numpy.random <span class="keyword">as</span> random</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">sgd</span><span class="params">(X, Y, ep)</span>:</span></span><br><span class="line">    <span class="string">""" Train a simple perceptron using SGD</span><br><span class="line">    </span><br><span class="line">    Parameters</span><br><span class="line">    ----------</span><br><span class="line">    X: array of shape=(n_samples, n_features) with dtype=np.float64</span><br><span class="line">        Each row contains the feature vector for a training sample instance.</span><br><span class="line">    Y: array of shape=(n_samples, ) with dtype=np.int64 ranging in &#123;0, 1&#125;</span><br><span class="line">        Corresponding label of training instances.</span><br><span class="line">    ep: double</span><br><span class="line">        Desired accuracy, which controls max iteration number.</span><br><span class="line">    </span><br><span class="line">    Returns</span><br><span class="line">    -------</span><br><span class="line">    w: array of shape=(n_features, ) with dtype=np.float64</span><br><span class="line">        Weights vector of the linear classifier</span><br><span class="line">    b: double</span><br><span class="line">        Intercept term of the linear classifier</span><br><span class="line">    """</span></span><br><span class="line">    n_samples, n_features = X.shape</span><br><span class="line">    </span><br><span class="line">    w = random.randn(n_features)</span><br><span class="line">    w_previous = w.copy() + <span class="number">1</span></span><br><span class="line">    b = <span class="number">0.0</span></span><br><span class="line">    </span><br><span class="line">    t = <span class="number">0</span></span><br><span class="line">    T = <span class="number">1</span> / ep ** <span class="number">2</span></span><br><span class="line">    idx = np.arange(n_samples)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> t &lt; T:</span><br><span class="line">        <span class="comment"># check stop criterion</span></span><br><span class="line">        <span class="keyword">if</span> np.linalg.norm(w_previous - w) &lt;= <span class="number">0.0001</span>:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            w_previous[:] = w</span><br><span class="line">            random.shuffle(idx)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># update weights vector and intercept</span></span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> idx:</span><br><span class="line">            lx = <span class="number">2</span> * Y[j] - <span class="number">1</span></span><br><span class="line">            <span class="keyword">if</span> (w.dot(X[j].T) + b) * lx &lt; <span class="number">0</span>:</span><br><span class="line">                step_size = <span class="number">0.1</span> / (<span class="number">0.1</span> + t * ep ** <span class="number">2</span>)</span><br><span class="line">                w += step_size * X[j] * lx</span><br><span class="line">                b += step_size * lx</span><br><span class="line">            t += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> w, b</span><br></pre></td></tr></table></figure></p>
+<p>这里有几个要点：</p>
+<ul>
+<li>主要的训练过程发生在第44-50行的内循环中，这也将是我们优化的重点。</li>
+<li>第37-38行，每遍历数据集一次就检查权值向量$\mathbf{w}$的更新情况，若其变化不大就提前跳出循环。</li>
+<li>第41行，用“先shuffle再顺序遍历”的方法来模拟SGD每次迭代中对$\mathbf{x}_i$的随机采样。</li>
+</ul>
+<h2 id="Step-1：明确标示所有变量的类型"><a href="#Step-1：明确标示所有变量的类型" class="headerlink" title="Step 1：明确标示所有变量的类型"></a>Step 1：明确标示所有变量的类型</h2><p>首先，为了区别Cython文件与Python文件，我们要把文件名改为<code>sgd.pyx</code>。其实这时候直接就可以用Cython编译它了，因为Cython的语法和Python的语法是兼容的：<br><figure class="highlight elixir"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$ </span>cython sgd.pyx</span><br></pre></td></tr></table></figure></p>
+<p>但是这样做呢程序的性能并不会提升多少，我们还需要加点其它的东西进去，来帮助cython生成更高效的C代码。</p>
+<p>第一件事就是显示声明<strong>每个</strong>变量的类型。正如文章开始时说过的，Python是动态类型的语言，每个变量的类型是在运行时决定的，若不声明变量类型，则Cython默认每个变量都是<code>PyObject</code>类型的，这个类型在Cython中用来指代Python对象。Cython操作这种类型的变量时和Python解释器的手法是一样的，因此会慢很多。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#sgd.pyx</span></span><br><span class="line"><span class="keyword">from</span> __future__ <span class="keyword">import</span> division</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line">cimport numpy <span class="keyword">as</span> np</span><br><span class="line">cimport cython</span><br><span class="line"><span class="keyword">import</span> numpy.random <span class="keyword">as</span> random</span><br><span class="line"></span><br><span class="line">DTYPE = np.double</span><br><span class="line">ctypedef np.double_t DTYPE_t</span><br><span class="line">TTYPE = np.int64</span><br><span class="line">ctypedef np.int64_t TTYPE_t</span><br><span class="line"></span><br><span class="line"><span class="meta">@cython.cdivision(True)</span></span><br><span class="line"><span class="meta">@cython.boundscheck(False)</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">sgd</span><span class="params">(np.ndarray[DTYPE_t, ndim=<span class="number">2</span>] X,</span><br><span class="line">        np.ndarray[TTYPE_t, ndim=<span class="number">1</span>] Y,</span><br><span class="line">        double ep)</span>:</span></span><br><span class="line">    <span class="string">""" Train a simple perceptron using SGD</span><br><span class="line">    </span><br><span class="line">    Parameters</span><br><span class="line">    ----------</span><br><span class="line">    X: array of shape=(n_samples, n_features) with dtype=np.float64</span><br><span class="line">        Each row contains the feature vector for a training sample instance.</span><br><span class="line">    Y: array of shape=(n_samples, ) with dtype=np.int64 ranging in &#123;0, 1&#125;</span><br><span class="line">        Corresponding label of training instances.</span><br><span class="line">    ep: double</span><br><span class="line">        Desired accuracy, which controls max iteration number.</span><br><span class="line">    </span><br><span class="line">    Returns</span><br><span class="line">    -------</span><br><span class="line">    w: array of shape=(n_features, ) with dtype=np.float64</span><br><span class="line">        Weights vector of the linear classifier</span><br><span class="line">    b: double</span><br><span class="line">        Intercept term of the linear classifier</span><br><span class="line">    """</span></span><br><span class="line">    cdef int n_samples = X.shape[<span class="number">0</span>]</span><br><span class="line">    cdef int n_features = X.shape[<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">    cdef np.ndarray[DTYPE_t, ndim=<span class="number">1</span>] w = random.randn(n_features)</span><br><span class="line">    cdef np.ndarray[DTYPE_t, ndim=<span class="number">1</span>] w_previous = w.copy() + <span class="number">1</span></span><br><span class="line">    cdef double b = <span class="number">1.0</span></span><br><span class="line"></span><br><span class="line">    cdef unsigned T = &lt;unsigned&gt;(<span class="number">1</span> / ep ** <span class="number">2</span>)</span><br><span class="line">    cdef unsigned t = <span class="number">0</span></span><br><span class="line">    cdef long lx</span><br><span class="line">    cdef unsigned j</span><br><span class="line">    cdef double step_size</span><br><span class="line">    cdef np.ndarray[np.uint32_t, ndim=<span class="number">1</span>] idx = np.arange(n_samples, np.uint32)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> t &lt; T:</span><br><span class="line">        <span class="comment"># check stop criterion</span></span><br><span class="line">        <span class="keyword">if</span> np.linalg.norm(w_previous - w) &lt;= <span class="number">0.0001</span>:</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            w_previous[:] = w</span><br><span class="line">            random.shuffle(idx)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># update weights vector and intercept</span></span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> idx:</span><br><span class="line">            lx = <span class="number">2</span> * Y[j] - <span class="number">1</span></span><br><span class="line">            <span class="keyword">if</span> (w.dot(X[j].T) + b) * lx &lt; <span class="number">0</span>:</span><br><span class="line">                step_size = <span class="number">0.1</span> / (<span class="number">0.1</span> + t * ep ** <span class="number">2</span>)</span><br><span class="line">                w += step_size * X[j] * lx</span><br><span class="line">                b += step_size * lx</span><br><span class="line">            t += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> w, b</span><br></pre></td></tr></table></figure>
+<ul>
+<li>在Cython中，使用诸如<code>cdef int x</code>的语句来声明指定类型的变量，其中<code>cdef</code>是Cython关键字，<code>int</code>是类型（C类型或是通过<code>cdef</code>得到的<a href="http://docs.cython.org/src/tutorial/cdef_classes.html" target="_blank" rel="external">扩展类型</a>)，<code>x</code>是变量名。例子见下述代码中的第36、37行。</li>
+<li>对于<code>numpy.ndarray</code>，Cython为之专门提供了用<code>cdef</code>重新封装过的版本（准确地说是用<code>cdef</code>定义了一个扩展类型）。为了使用该版本，需要用<code>cimport</code>把<code>numpy</code>重新导入一次（见第4行）。不过不用担心它和之前用<code>import</code>导入的<code>numpy</code>发生冲突，Cython会自动区分。<code>cimport</code>是Cython专用的语法，表示导入的是Cython模块（一般是一个<code>.pxd</code>文件）。</li>
+<li>用<code>cdef</code>声明<code>numpy.ndarray</code>类型时，最好能够指出其中的数据类型以及矩阵的维度（例如函数参数中对<code>X</code>声明，见第15行）。<strong>多数时候</strong>这能大大提高编译后的代码中对矩阵的读写速度。不过注意这种优化方式仅当你使用“C-like indexing”（用D个typed variable索引维度为D的array，例如在本节代码中对<code>Y</code>的索引<code>Y[j]</code>）的时候才起作用，而若是使用<code>Numpy</code>的“fancy indexing”功能（例如在本节代码中对<code>X</code>每一行的索引<code>X[j]</code>）则起不到优化的效果。由于上述原因，这项优化在上述SGD代码中带来的性能提升并不明显。</li>
+<li><code>numpy</code>提供了各种数据类型，包括<code>int32</code>、<code>float64</code>等，分别对应C语言中的32位有符号整数、64位浮点数。C语言中的基本数据类型都有<code>numpy</code>的对应版本。但这些类型不能直接与<code>cdef</code>结合使用，因为在<code>numpy</code>中这些类型都是Python对象。通过<code>cimport numpy</code>这条语句，我们可以得到上述类型的C版本的定义，只需要在原来的类型名字末尾加上<code>_t</code>即可，例子见第9、11行。</li>
+<li><code>numpy.ndarray</code>支持负下标索引：类似Python中的<code>list</code>，-1表示最后一个元素，-2则是倒数第二个，依次类推。Cython默认开启对该功能的支持，而这也会减慢速度。关闭它的方法很简单：用<code>unsigned int</code>类型的变量进行矩阵索引，第46、48行声明的变量就是起这个作用。</li>
+<li>Cython默认进行数组越界检查，这也是个降低速度的地方，不过可以用<code>@cython.boundscheck(False)</code>的方法关闭该功能（见第14行）</li>
+</ul>
+<h2 id="Step-2：添加对稀疏矩阵的支持"><a href="#Step-2：添加对稀疏矩阵的支持" class="headerlink" title="Step 2：添加对稀疏矩阵的支持"></a>Step 2：添加对稀疏矩阵的支持</h2><p>之前的程序默认输入的数据保存在<code>numpy.ndarray</code>对象中，这是一个稠密矩阵类型，在数据很稀疏时就不好用了。<code>scipy.sparse</code>提供了几种存储方式的稀疏矩阵，其底层其实都是用一个<code>ndarray</code>保存非零数据，再用几个<code>ndarray</code>保存数据的索引，唯一不同的只是构建索引的方式。最关键的是，这些底层的东西都可以通过某些办法直接操作的！</p>
+<p>根据上面的思路，我模仿<code>sklearn.utils.seq_dataset</code>及<code>sklearn.utils.weight_vector</code>实现了两个容器<code>SequentialDataset</code>及<code>WeightVector</code>，但是针对自己的需要做了一些修改。其中<code>SequentialDataset</code>是用来操作训练数据集(<code>X</code>、<code>Y</code>)的，支持顺序存取及shuffle操作；<code>WeightVector</code>则是用来操作权值向量的，支持向量加法、内积、复制等操作。</p>
+<p>由于篇幅所限，上述两个容器的代码实现不列出在这里，仅在后面做出简要说明，有兴趣同学可以去看<code>sklearn</code>中的<a href="https://github.com/scikit-learn/scikit-learn/tree/master/sklearn/utils" target="_blank" rel="external">源码[5]</a>，毕竟思路是来自那里。下面列出修改后的<code>sgd</code>代码：</p>
+<figure class="highlight vim"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br></pre></td><td class="code"><pre><span class="line"># cython: cdivision=True</span><br><span class="line"># cython: boundscheck=False</span><br><span class="line"># cython: wraparound=False</span><br><span class="line"></span><br><span class="line">from __future__ import division</span><br><span class="line">cimport cython</span><br><span class="line">import numpy <span class="keyword">as</span> np</span><br><span class="line">cimport numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line">from .container cimport SequentialDataset</span><br><span class="line">from .container cimport WeightVector</span><br><span class="line">from .container cimport DTYPE_t, YTYPE_t</span><br><span class="line"></span><br><span class="line">def sgd(SequentialDataset dataset,</span><br><span class="line">        np.ndarray[DTYPE_t, ndim=<span class="number">1</span>, <span class="keyword">mode</span>=<span class="string">'c'</span>] weights,</span><br><span class="line">        double intercept,</span><br><span class="line">        double ep,</span><br><span class="line">        bint shuffle, np.uint32_t seed):</span><br><span class="line">    <span class="string">""</span><span class="comment">"Train a perceptron-like linear classifier using Stochastic Gradient</span></span><br><span class="line">    Descent.</span><br><span class="line">    Parameters</span><br><span class="line">    ----------</span><br><span class="line">    datase<span class="variable">t:</span> SequentialDataset,</span><br><span class="line">        Training samples.</span><br><span class="line">    weight<span class="variable">s:</span> array of shape = [n_features] with dtype = np.DTYPE.</span><br><span class="line">        Allocated weight vector.</span><br><span class="line">    intercep<span class="variable">t:</span> DTYPE,</span><br><span class="line">        initial intercept value.</span><br><span class="line">    ep: double.</span><br><span class="line">        error tolerance, controls the iteration numbers. Training time will</span><br><span class="line">        <span class="keyword">be</span> roughly O(<span class="number">1</span>/min_node_err^<span class="number">2</span>).</span><br><span class="line">    Returns</span><br><span class="line">    -------</span><br><span class="line">    weights : array, shape=[n_features]</span><br><span class="line">        The fitted weight vector.</span><br><span class="line">    intercept : double</span><br><span class="line">        The fitted intercept term.</span><br><span class="line">    <span class="string">""</span><span class="comment">"</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    # acquire data information</span><br><span class="line">    cdef Py_ssize_t n_samples = dataset.n_samples</span><br><span class="line">    cdef Py_ssize_t n_features = weights.shape[<span class="number">0</span>]</span><br><span class="line">    cdef unsigned <span class="keyword">int</span> n_iter = <span class="built_in">max</span>(np.<span class="keyword">int</span>(<span class="number">1</span> / ep ** <span class="number">2</span>), <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    # some helper variable<span class="variable">s:</span></span><br><span class="line">    # <span class="keyword">for</span> iteration</span><br><span class="line">    cdef unsigned <span class="keyword">int</span> n_outer = <span class="built_in">max</span>(n_iter, n_samples)</span><br><span class="line">    cdef unsigned <span class="keyword">int</span> n_inner = <span class="built_in">min</span>(n_iter, n_samples)</span><br><span class="line">    cdef unsigned <span class="keyword">int</span> t = <span class="number">0</span></span><br><span class="line">    cdef np.int64_t <span class="keyword">j</span> = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    # <span class="keyword">for</span> weight vector</span><br><span class="line">    cdef np.ndarray[DTYPE_t, ndim=<span class="number">1</span>] w_previous = weights.<span class="keyword">copy</span>() + <span class="number">1</span></span><br><span class="line">    cdef WeightVector <span class="keyword">w</span> = WeightVector(weights)</span><br><span class="line">    cdef WeightVector <span class="keyword">wp</span> = WeightVector(w_previous)</span><br><span class="line">    cdef DTYPE_t* w_data_ptr = NULL</span><br><span class="line">    cdef np.ndarray[<span class="keyword">int</span>, ndim=<span class="number">1</span>] w_indices = np.arange(n_features).astype(np.int32)</span><br><span class="line">    cdef <span class="keyword">int</span>* w_ind_ptr = &lt;<span class="keyword">int</span> *&gt;w_indices.data</span><br><span class="line">    cdef <span class="keyword">int</span> wnnz = <span class="symbol">&lt;int&gt;</span>n_features</span><br><span class="line"></span><br><span class="line">    # <span class="keyword">for</span> sample instance</span><br><span class="line">    cdef DTYPE_t *x_data_ptr = NULL</span><br><span class="line">    cdef <span class="keyword">int</span> *x_ind_ptr = NULL</span><br><span class="line">    cdef <span class="keyword">int</span> xnnz</span><br><span class="line">    cdef YTYPE_t <span class="keyword">y</span></span><br><span class="line"></span><br><span class="line">    # <span class="keyword">for</span> <span class="keyword">update</span></span><br><span class="line">    cdef double step_size = <span class="number">0</span></span><br><span class="line">    cdef YTYPE_t lx = <span class="number">0</span></span><br><span class="line">    cdef double <span class="keyword">p</span> = <span class="number">0.0</span></span><br><span class="line"></span><br><span class="line">    with nogi<span class="variable">l:</span></span><br><span class="line">        <span class="keyword">while</span> t &lt; n_outer:</span><br><span class="line">            <span class="keyword">if</span> shuffle:</span><br><span class="line">                dataset.shuffle(seed)</span><br><span class="line">            <span class="keyword">for</span> <span class="keyword">j</span> in <span class="built_in">range</span>(n_inner):</span><br><span class="line">                # <span class="built_in">get</span> <span class="keyword">next</span> sample</span><br><span class="line">                dataset.<span class="keyword">next</span>(&amp;x_data_ptr,</span><br><span class="line">                             &amp;x_ind_ptr,</span><br><span class="line">                             &amp;xnnz,</span><br><span class="line">                             &amp;<span class="keyword">y</span>)</span><br><span class="line">                lx = <span class="number">2</span> * <span class="keyword">y</span> - <span class="number">1</span></span><br><span class="line"></span><br><span class="line">                # <span class="keyword">update</span> weights with hinge loss</span><br><span class="line">                <span class="keyword">p</span> = (<span class="keyword">w</span>.dot(x_data_ptr, x_ind_ptr, xnnz) + intercept) * lx</span><br><span class="line">                <span class="keyword">if</span> <span class="keyword">p</span> &lt; <span class="number">0</span>:</span><br><span class="line">                    step_size = lx * <span class="number">0.1</span> / (<span class="number">0.1</span> + t * ep ** <span class="number">2</span>)</span><br><span class="line">                    <span class="keyword">w</span>.<span class="built_in">add</span>(x_data_ptr, x_ind_ptr, xnnz, step_size)</span><br><span class="line">                    intercept += step_size</span><br><span class="line">                t += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">            # check <span class="keyword">for</span> early stopping</span><br><span class="line">            w_data_ptr = <span class="keyword">w</span>.w_data_ptr</span><br><span class="line">            <span class="keyword">wp</span>.<span class="built_in">add</span>(w_data_ptr, w_ind_ptr, wnnz, -<span class="number">1</span>)</span><br><span class="line">            <span class="keyword">if</span> t &lt; n_iter <span class="built_in">and</span> <span class="keyword">wp</span>.<span class="keyword">norm</span>() &lt;= <span class="number">0.0001</span>:</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">wp</span>.assign(<span class="keyword">w</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> weights, intercept</span><br></pre></td></tr></table></figure>
+<ul>
+<li>注意在第73行，我使用<code>with nogil</code>显示地释放了GIL</li>
+<li>其实在这里可以利用并行化来加速：在计算向量内积时使用<code>openmp</code>。（PS. 在Cython中使用<code>openmp</code>非常方便，具体见<a href="http://docs.cython.org/src/userguide/parallelism.html" target="_blank" rel="external">3</a>。</li>
+<li>第14行，参数中的<code>dataset</code>变量代替了原本的<code>X</code>、<code>Y</code>矩阵，其提供了<code>shuffle</code>操作（见第76行）及<code>next</code>操作（第79行）。  <ul>
+<li>其中<code>next</code>函数的作用是返回数据集中下一个样本。注意它返回向量<code>X[i]</code>的方式：使用三个量来描述一个向量，分别是<code>x_data_ptr</code>、<code>x_ind_ptr</code>及<code>xnnz</code>，可以近似地认为<code>x_data_ptr</code>是保存<code>X[i]</code>中非零元素的数组，<code>x_ind_ptr</code>则保存了各个非零元在<code>X[i]</code>中的列标，<code>xnnz</code>则是非零元的个数。这种表示方式源自<a href="https://en.wikipedia.org/wiki/Sparse_matrix#Yale" target="_blank" rel="external">CSR稀疏矩阵[4]</a>。</li>
+</ul>
+</li>
+<li>第55行，用<code>WeightVector</code>变量代替了原本的<code>numpy.ndarray</code>。其提供四个操作：<code>add</code>、<code>dot</code>、<code>norm</code>及<code>assign</code>。前两个函数的参数列表类似<code>SequentialDataset.next</code>，是为了配合与样本向量的计算。</li>
+</ul>
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><p>[1] Cython Users Guide,<br><a href="http://docs.cython.org/src/userguide/index.html" target="_blank" rel="external">http://docs.cython.org/src/userguide/index.html</a></p>
+<p>[2] Cython Tutorial: Working with Numpy,<br><a href="http://docs.cython.org/src/tutorial/numpy.html" target="_blank" rel="external">http://docs.cython.org/src/tutorial/numpy.html</a></p>
+<p>[3] Cython Documentation: Using Parellelism,<br><a href="http://docs.cython.org/src/userguide/parallelism.html" target="_blank" rel="external">http://docs.cython.org/src/userguide/parallelism.html</a></p>
+<p>[4] Compressed Row Storage,<br><a href="https://en.wikipedia.org/wiki/Sparse_matrix#Yale" target="_blank" rel="external">https://en.wikipedia.org/wiki/Sparse_matrix#Yale</a></p>
+<p>[5] <code>seq_dataset.pyx</code> and <code>weight_vector.pyx</code>,<br><a href="https://github.com/scikit-learn/scikit-learn/tree/master/sklearn/utils" target="_blank" rel="external">https://github.com/scikit-learn/scikit-learn/tree/master/sklearn/utils</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2016/02/20/numpy-with-cython/" data-id="cipnq4nlf001h3j4khg3ieqgz" class="article-share-link">Share</a>
+      
+        <a href="http://yoursite.com/2016/02/20/numpy-with-cython/#disqus_thread" class="article-comment-link">Comments</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/python/">python</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2016/02/22/A-Superhard-Elementary-Math-Problem/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          A Superhard Elementary Math Problem
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/02/20/debug-linux-0.11-2/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">调试在64位Debian上编译好的Linux 0.11（二）</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<section id="comments">
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+</section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Math/">Math</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/programming/">programming</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Emacs/">Emacs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/distributed-system/">distributed-system</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/math/">math</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/programming/">programming</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/puzzle/">puzzle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Emacs/" style="font-size: 10px;">Emacs</a> <a href="/tags/Linux-Kernel/" style="font-size: 20px;">Linux Kernel</a> <a href="/tags/distributed-system/" style="font-size: 10px;">distributed-system</a> <a href="/tags/math/" style="font-size: 10px;">math</a> <a href="/tags/programming/" style="font-size: 10px;">programming</a> <a href="/tags/puzzle/" style="font-size: 10px;">puzzle</a> <a href="/tags/python/" style="font-size: 20px;">python</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/03/26/mit-distributed-system-course-summary/">Summary for MIT 6.824- Course projects</a>
+          </li>
+        
+          <li>
+            <a href="/2016/03/21/Python-generators-coroutines-and-asyncio-library-2/">Python coroutines and asyncio library (2)</a>
+          </li>
+        
+          <li>
+            <a href="/2016/03/20/Python-generators-coroutines-and-asyncio-library-1/">Python coroutines and asyncio library (1)</a>
+          </li>
+        
+          <li>
+            <a href="/2016/02/22/A-Superhard-Elementary-Math-Problem/">A Superhard Elementary Math Problem</a>
+          </li>
+        
+          <li>
+            <a href="/2016/02/20/numpy-with-cython/">Numpy with Cython</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 xyguo<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+    <a href="/links" class="mobile-nav-link">Links</a>
+  
+</nav>
+    
+<script>
+  var disqus_shortname = 'xyguo';
+  
+  var disqus_url = 'http://yoursite.com/2016/02/20/numpy-with-cython/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({"HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"], linebreaks: { automatic:true }, EqnChunk: (MathJax.Hub.Browser.isMobile ? 10 : 50) },
+        tex2jax: { inlineMath: [ ["$", "$"], ["\\(","\\)"] ], processEscapes: true, ignoreClass: "tex2jax_ignore|dno",skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']},
+        TeX: {  noUndefined: { attributes: { mathcolor: "red", mathbackground: "#FFEEEE", mathsize: "90%" } }, Macros: { href: "{}" } },
+        messageStyle: "none"
+    }); 
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>

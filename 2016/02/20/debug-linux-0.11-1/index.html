@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>调试在64位Debian上编译好的Linux 0.11（一） | Coupon Collector</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="从以前的博客搬来的老文，记录了把之前编译出来的那个古老内核在bochs上运行起来的经过">
+<meta property="og:type" content="article">
+<meta property="og:title" content="调试在64位Debian上编译好的Linux 0.11（一）">
+<meta property="og:url" content="http://yoursite.com/2016/02/20/debug-linux-0.11-1/index.html">
+<meta property="og:site_name" content="Coupon Collector">
+<meta property="og:description" content="从以前的博客搬来的老文，记录了把之前编译出来的那个古老内核在bochs上运行起来的经过">
+<meta property="og:updated_time" content="2016-06-20T07:24:54.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="调试在64位Debian上编译好的Linux 0.11（一）">
+<meta name="twitter:description" content="从以前的博客搬来的老文，记录了把之前编译出来的那个古老内核在bochs上运行起来的经过">
+  
+    <link rel="alternate" href="/atom.xml" title="Coupon Collector" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Coupon Collector</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">miscellaneous notes</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+          <a class="main-nav-link" href="/links">Links</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-debug-linux-0.11-1" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/02/20/debug-linux-0.11-1/" class="article-date">
+  <time datetime="2016-02-20T05:29:22.000Z" itemprop="datePublished">2016-02-20</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/programming/">programming</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      调试在64位Debian上编译好的Linux 0.11（一）
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本机环境:</p>
+<ul>
+<li>SMP Debian 3.11.6-1 (2013-10-27) x86_64 GNU/Linux</li>
+<li>gcc (Debian 4.8.2-5) 4.8.2</li>
+<li>GNU assembler (GNU Binutils for Debian) 2.23.90.20131116</li>
+<li>GNU ld (GNU Binutils for Debian) 2.23.90.20131116</li>
+<li>Bochs x86 Emulator 2.6</li>
+</ul>
+<p>编译时的一些设定：</p>
+<pre><code>./Makefile
+
+RAMDISK = -DRAMDISK=512  #设定虚拟盘大小为512KB
+ROOT_DEV=FLOPPY
+LD    =ld -m elf_i386 -Ttext 0 -e startup_32
+</code></pre><h2 id="1-调试前的准备"><a href="#1-调试前的准备" class="headerlink" title="1.调试前的准备"></a>1.调试前的准备</h2><h3 id="1-制作内核引导Image"><a href="#1-制作内核引导Image" class="headerlink" title="1.制作内核引导Image"></a>1.制作内核引导Image</h3><p>为了把编译好的内核镜像放到bochs中运行，首先制作内核引导Image，具体为（参考<a href="http://book.douban.com/subject/1481173/" target="_blank" rel="external">Linux内核完全剖析</a>）：</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">#也可以用下述命令替换顶层Makefile中的disk目标下的命令</span><br><span class="line"><span class="selector-tag">dd</span> <span class="keyword">if</span>=Image of=bootimage-fda<span class="selector-class">.img</span></span><br><span class="line"><span class="selector-tag">dd</span> bs=<span class="number">1024</span> <span class="keyword">if</span>=/dev/zero of=bootimage-fda<span class="selector-class">.img</span> seek=<span class="number">256</span> count=<span class="number">1184</span></span><br></pre></td></tr></table></figure>
+<p>其中<code>Image</code>是之前编译出的内核镜像。上述操作得到一个大小为1.44MB的Image文件<code>bootimage-fda.img</code>，将作为在bochs中使用的引导盘。注意此时我们仍未创建根文件系统，而在Makefile中设置了<code>ROOT_DEV=FLOPPY</code>，因此正常情况下在fork出进程1、进程1调用<code>setup((void*)&amp;drive_info)</code>安装根文件系统时，会提示插入含有根文件系统的软盘，不过这暂时不用担心。</p>
+<h3 id="2-设置bochs"><a href="#2-设置bochs" class="headerlink" title="2.设置bochs"></a>2.设置bochs</h3><p>接下来设置bochs，仍参考<a href="http://book.douban.com/subject/1481173/" target="_blank" rel="external">Linux内核完全剖析</a>，但由于书中使用的bochs版本较老，有些选项的写法需要修改：</p>
+<pre><code>./bochsrc-fda.bxrc
+
+romimage: file=$BXSHARE/BIOS-bochs-latest
+megs: 16
+vgaromimage: file=$BXSHARE/VGABIOS-elpin-2.40
+floppya: 1_44=&quot;bootimage-fda.img&quot;, status=inserted
+floppyb: 1_44=diskb.img, status=inserted
+ata0-master: type=disk, path=&quot;hdc-0.11-new.img&quot;, mode=flat, cylinders=121, heads=16, spt=63
+boot: a
+log: bochs.out
+parport1: enabled=0
+vga: update_freq=5
+keyboard: paste_delay=100000, serial_delay=200
+cpu: count=1, ips=4000000
+mouse: enabled=0
+</code></pre><p>注意其中用到的<code>diskb.img</code>与<code>hdc-0.11-new.img</code>是<a href="http://www.oldlinux.org/Linux.old/bochs/linux-0.11-devel-060625.zip" target="_blank" rel="external">这个包</a>提供的。其中也包含了做好的根文件系统镜像，可以直接用。然后就可以直接运行系统了！</p>
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">bochs </span>-f <span class="keyword">bochsrc-fda.bxrc</span></span><br></pre></td></tr></table></figure>
+<h3 id="3-设置添加了gdb-stub功能的bochs"><a href="#3-设置添加了gdb-stub功能的bochs" class="headerlink" title="3.设置添加了gdb-stub功能的bochs"></a>3.设置添加了gdb-stub功能的bochs</h3><p>调试C程序代码时很多时候还是用gdb更为方便，因此可以专门编译出一份开启了<code>gdb-stub</code>功能的bochs，并将其重命名为bochs-gdb以与原来的bochs区分。若要换用开启了“gdb-stub”功能的bochs进行调试，则给所有Makefile文件中的CFLAGS加上 <strong>-g</strong> 选项，去除所有LDFLAGS中的 <strong>-s</strong> 选项。此时system模块由于附加了大量调试信息，大小超过了顶层Makefile中设定的限制<code>SYSSIZE = 0x3000</code>,因此可将顶层Makefile中的<code>tools/system</code>目标修改如下：</p>
+<pre><code>tools/system:    boot/head.o init/main.o \
+                $(ARCHIVES) $(DRIVERS) $(MATH) $(LIBS)
+        $(LD) $(LDFLAGS) boot/head.o init/main.o \
+        $(ARCHIVES) \
+        $(DRIVERS) \
+        $(MATH) \
+        $(LIBS) \
+        -o tools/system &gt; System.map
+        objcopy --only-keep-debug tools/system tools/system.dbg
+        objcopy --add-gnu-debuglink=tools/system.dbg tools/system
+        objcopy -g tools/system
+</code></pre><p>将调试信息抽取出来专门存于一个文件system.dbg中，gdb执行时将会利用该调试信息文件。</p>
+<h2 id="2-问题"><a href="#2-问题" class="headerlink" title="2.问题"></a>2.问题</h2><h3 id="1-无法正确载入system模块"><a href="#1-无法正确载入system模块" class="headerlink" title="1.无法正确载入system模块"></a>1.无法正确载入system模块</h3><p>直接运行内核发现bochs的虚拟终端上不断刷新如下信息</p>
+<pre><code>...
+ata0 master: Generic 1234 ATA-6 Hard-Disk ( 121 MBytes)
+Press F12 for boot menu.
+Booting from Floppy...
+Loading system ...
+</code></pre><p>初步猜测进入了某个死循环。使用打开了调试功能的bochs单步调试发现，程序执行到<code>setup.s</code>中第193行之前都正常</p>
+<pre><code>boot/setup.s
+
+193   jmpi  0, 8  ! jmp offset 0 of segment 8(cs)
+</code></pre><p>这一行的功能是跳转到cs段偏移0处（<strong>此时保护模式已打开</strong>），实际上就是物理地址0x0处。该地址此时应为system模块的起始处（因在进入保护模式前，<code>setup.s</code>中113-126行的代码已将system模块从线性地址<strong>0x10000</strong>移至<strong>0x0000</strong>，而当时线性地址0x0与物理地址0x0是重合的）。然而此时查看物理地址0x0处的内容发现，从该处开始有很长一段（事实上足足有3KB）的值是全零，因此system模块必然出了问题。问题只能出在三个地方：</p>
+<ul>
+<li><code>bootsect.s</code>中109行，将system模块从磁盘上读入内存0x10000处时</li>
+<li><code>setup.s</code>中113-126行，将system模块从0x10000复制到0x00000处时</li>
+<li><code>build.c</code>中157-167行，将system模块组装到Image中时（话说这个我一开始还真没想到）</li>
+</ul>
+<p>通过bochs调试前两处可能出现错误的地方，没有发现任何问题，因此问题只可能出在system模块本身。根据<code>bootsect.s</code>中读入system模块的代码，发现其是从第5个磁盘块（每个磁盘块大小为1KB）开始读入system模块的，因此system模块的起始地址应为Image中第2.5KB处，即地址<strong>0x0a00</strong>，然而使用hexdump查看Image文件发现，system模块实际上是从<strong>0x1600</strong>字节处开始的，等于说存在一个3KB大小的空洞！build.c中组装system模块的代码如下：</p>
+<pre><code>tools/build.c
+
+157    if ((id=open(argv[3],O_RDONLY,0))&lt;0)
+158        die(&quot;Unable to open &apos;system&apos;&quot;);
+159    if (read(id,buf,GCC_HEADER) != GCC_HEADER)
+160        die(&quot;Unable to read header of &apos;system&apos;&quot;);
+161    if (((long *) buf)[6] != 0)
+162           die(&quot;Non-GCC header of &apos;system&apos;&quot;);
+163    for (i=0 ; (c=read(id,buf,sizeof buf))&gt;0 ; i+=c )
+164       if (write(1,buf,c)!=c)
+165           die(&quot;Write call failed&quot;);
+166    close(id);
+</code></pre><p>可以看出，build程序先读取system模块的GCC_HEADER（实际上就是ELF头）判断文件格式的合法性，然后抛弃该文件头，把剩下的内容添加到Image文件中。这里有一个隐含的假设：system模块的ELF头大小就是1KB！然而实际上，这个用现代版本gcc编译出来的目标文件，其ELF头的大小是4KB（这也可以通过hexdump看出）。因此build程序实际上应该丢弃system模块前4KB的内容。在163行前加上下述代码即可：<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/* The header size <span class="keyword">is</span> <span class="number">4</span>*GCC_HEADER (<span class="number">4</span>KB) <span class="keyword">on</span> <span class="keyword">my</span> machine*/</span><br><span class="line">	<span class="keyword">for</span> (i=<span class="number">0</span>; i&lt;<span class="number">3</span>; i++)</span><br><span class="line">		<span class="keyword">if</span> (<span class="built_in">read</span>(<span class="built_in">id</span>,buf,GCC_HEADER) != GCC_HEADER)</span><br><span class="line">			die(<span class="string">"Unable to read header of 'system'"</span>);</span><br></pre></td></tr></table></figure></p>
+<h3 id="2-在显示出“Loading-system”信息后就停止运行"><a href="#2-在显示出“Loading-system”信息后就停止运行" class="headerlink" title="2.在显示出“Loading system”信息后就停止运行"></a>2.在显示出“Loading system”信息后就停止运行</h3><p>按正常情况，应该是在<code>mount_root()</code>函数显示出</p>
+<blockquote>
+<p>Insert root floppy and press ENTER</p>
+</blockquote>
+<p>信息之后系统再暂停运行，然而这里的情况表明程序根本没有执行到这一步。在main.c中的<code>init()</code>调用<code>setup()</code>之前插一句<code>printk(&quot;entering init&quot;);</code>再重新运行一遍程序，发现根本没有执行到这一行，则有如下几种可能：</p>
+<ul>
+<li><code>fork()</code>调用存在问题</li>
+<li>进程调度存在问题</li>
+</ul>
+<p>首先用bochs调试代码，检查main.c中定义的内联版本的<code>fork()</code>是否被正确展开（其实就是检查<code>main()</code>调用<code>fork()</code>时有没有用call指令。因为<a href="http://blog.chinaunix.net/uid-23917107-id-3173253.html" target="_blank" rel="external">这里</a>提到过GCC有时不会把该函数按内联的方式展开）。在我的电脑上编译出来的代码中，这一步是没有问题的，于是接下来深入<code>sys_fork</code>调用去检查。换用bochs-gdb调试代码，结果发现<code>copy_process()</code>中子进程复制父进程task_struct时出现了问题：</p>
+<pre><code>*p = *current;
+</code></pre><p>这一步执行完后，并没有把<code>*current</code>复制给<code>*p</code>。查看这两个task_struct结构的周边内存，发现下述情况</p>
+<pre><code>...
+(gdb) x /16 0x00017140
+0x17140 &lt;current&gt;: 0x00017160 0x00000000 0x00000000 0x00000000
+0x17150: 0x00000000 0x00000000 0x00000000 0x00000000
+0x17160: 0x00000000 0x00000000 0x00000000 0x00000000
+0x17170: 0x00000000 0x00000000 0x00000000 0x00000000
+(gdb) x /16 0x00ffefe0
+0xffefe0: 0x00017160 0x00000000 0x00000000 0x00000000
+0xffeff0: 0x00000000 0x00000000 0x00000000 0x00000000
+0xfff000: 0x00000000 0x00000000 0x00000000 0x00000000
+0xfff010: 0x00000000 0x00000000 0x00000000 0x00000000
+...
+</code></pre><p>本次调试时<code>p=0x00fff000</code>，<code>current=0x00017160</code>，注意到位于地址<strong>0x17140</strong>的值似乎被复制到了地址<strong>0xffefe0</strong>处，这可能说明复制时是往<strong>低地址方向</strong>复制的。于是在gdb中使用<code>set disassemble-next-line on</code>命令查看<code>copy_process()</code>中<code>*p = *current</code>语句产生的汇编代码得：</p>
+<pre><code>...
+*p = *current; /* NOTE! this doesn&apos;t copy the supervisor stack */
+=&gt; 0x00007a8a &lt;copy_process+35&gt;:  mov  0x17140,%esi
+   0x00007a90 &lt;copy_process+41&gt;:  mov  $0xef,%ecx
+   0x00007a95 &lt;copy_process+46&gt;:  mov  %ebx,%edi
+   0x00007a97 &lt;copy_process+48&gt;:  rep movsl %ds:(%esi),%es:(%edi)
+</code></pre><p>可见此时使用了<code>rep movsl</code>的方法来复制内存。根据<a href="http://www.intel.com/content/www/us/en/processors/architectures-software-developer-manuals.html" target="_blank" rel="external">Intel的手册</a>对该指令的描述，其复制方向受EFLAGS寄存器中DF位控制：DF=0时往高地址方向复制（这也是默认情况），DF=1时往低地址方向复制。用<code>info registers</code>查看EFLAGS寄存器的值，果然DF位被置位了。此时编译器认为DF位为0，然而实际上DF=1 。我对于编译原理了解不多，故只能猜测将DF位置位的代码并不是由编译器编译C代码产生的（否则编译器应该会知道自己将DF置位了），因此应是之前某手工编写的汇编代码中存在<code>std</code>指令，且之后没有用<code>cld</code>复位。搜索源文件知</p>
+<pre><code>~/Src/LinuxKernel/0.11/linux-0.11-deb$ egrep -nr &apos;\Wstd\W&apos; .
+./mm/memory.c:67:     __asm__(&quot;std ; repne ; scasb\n\t&quot;
+./kernel/chr_drv/console.c:189:     __asm__(&quot;std\n\t&quot;
+./kernel/chr_drv/console.c:174:     __asm__(&quot;std\n\t&quot;
+./include/string.h:352:    __asm__(&quot;std\n\t&quot;
+</code></pre><p>在这四个使用了<code>std</code>指令的内联汇编代码的最后都加上一句<code>cld</code>复位DF位即可。</p>
+<p>“Intel® 64 and IA-32 Architectures Software Developer’s Manual, Volume 2 (2A, 2B &amp; 2C): Instruction Set Reference, A-Z”</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2016/02/20/debug-linux-0.11-1/" data-id="cipnq4nkz00183j4knfs2re8p" class="article-share-link">Share</a>
+      
+        <a href="http://yoursite.com/2016/02/20/debug-linux-0.11-1/#disqus_thread" class="article-comment-link">Comments</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2016/02/20/debug-linux-0.11-2/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          调试在64位Debian上编译好的Linux 0.11（二）
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/02/20/compile-linux-0.11/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">64位Debian Sid下编译Linux 0.11内核</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<section id="comments">
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+</section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Math/">Math</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/programming/">programming</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Emacs/">Emacs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/distributed-system/">distributed-system</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/math/">math</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/programming/">programming</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/puzzle/">puzzle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Emacs/" style="font-size: 10px;">Emacs</a> <a href="/tags/Linux-Kernel/" style="font-size: 20px;">Linux Kernel</a> <a href="/tags/distributed-system/" style="font-size: 10px;">distributed-system</a> <a href="/tags/math/" style="font-size: 10px;">math</a> <a href="/tags/programming/" style="font-size: 10px;">programming</a> <a href="/tags/puzzle/" style="font-size: 10px;">puzzle</a> <a href="/tags/python/" style="font-size: 20px;">python</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/03/26/mit-distributed-system-course-summary/">Summary for MIT 6.824- Course projects</a>
+          </li>
+        
+          <li>
+            <a href="/2016/03/21/Python-generators-coroutines-and-asyncio-library-2/">Python coroutines and asyncio library (2)</a>
+          </li>
+        
+          <li>
+            <a href="/2016/03/20/Python-generators-coroutines-and-asyncio-library-1/">Python coroutines and asyncio library (1)</a>
+          </li>
+        
+          <li>
+            <a href="/2016/02/22/A-Superhard-Elementary-Math-Problem/">A Superhard Elementary Math Problem</a>
+          </li>
+        
+          <li>
+            <a href="/2016/02/20/numpy-with-cython/">Numpy with Cython</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 xyguo<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+    <a href="/links" class="mobile-nav-link">Links</a>
+  
+</nav>
+    
+<script>
+  var disqus_shortname = 'xyguo';
+  
+  var disqus_url = 'http://yoursite.com/2016/02/20/debug-linux-0.11-1/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>
