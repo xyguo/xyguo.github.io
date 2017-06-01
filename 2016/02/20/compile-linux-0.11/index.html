@@ -8,7 +8,7 @@
   <meta name="description" content="从以前的博客搬来的老文，描述了如何用一个现代的64位编译器（gcc 4.8）编译一个古老的内核（linux 0.11）">
 <meta property="og:type" content="article">
 <meta property="og:title" content="64位Debian Sid下编译Linux 0.11内核">
-<meta property="og:url" content="http://yoursite.com/2016/02/20/compile-linux-0.11/index.html">
+<meta property="og:url" content="http://xyguo.github.io/2016/02/20/compile-linux-0.11/index.html">
 <meta property="og:site_name" content="Coupon Collector">
 <meta property="og:description" content="从以前的博客搬来的老文，描述了如何用一个现代的64位编译器（gcc 4.8）编译一个古老的内核（linux 0.11）">
 <meta property="og:updated_time" content="2016-06-20T07:24:54.000Z">
@@ -65,7 +65,7 @@
         <a id="nav-search-btn" class="nav-icon" title="Search"></a>
       </nav>
       <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://xyguo.github.io"></form>
       </div>
     </div>
   </div>
@@ -140,7 +140,7 @@ include/unistd.h:134:6: note: in definition of macro ‘_syscall0’
 include/unistd.h:235:5: note: previous declaration of ‘sync’ was here
      int sync(void);
 </code></pre><p>这是因为fork(), pause(), sync()在unistd.h中被声明为int类型，而在main.c中它们却被定义成了static inline int类型。（注意在内核代码中只有main.c中直接调用了了这三个函数）<br>可以用<strong>预处理指令</strong>的方法在main.c中屏蔽上述三个函数在unistd.h中的声明（似乎也可以用extern inline的方法修改这三个函数的定义来得到相同的效果，但是由于extern inline的特性比较奇怪，不推荐使用）。具体为：</p>
-<p> 在main.c中<code>#include &lt;unistd.h&gt;</code>之前加上一句<code>#define __IN_MAIN__</code>，然后用<code>#ifndef</code>将fork、pause、sync在unistd.h中的声明包裹起来：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __IN_MAIN__</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">fork</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">pause</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">sync</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br></pre></td></tr></table></figure></p>
+<p> 在main.c中<code>#include &lt;unistd.h&gt;</code>之前加上一句<code>#define __IN_MAIN__</code>，然后用<code>#ifndef</code>将fork、pause、sync在unistd.h中的声明包裹起来：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __IN_MAIN__</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">fork</span><span class="params">(<span class="keyword">void</span>)</span></span>;</div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">pause</span><span class="params">(<span class="keyword">void</span>)</span></span>;</div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">sync</span><span class="params">(<span class="keyword">void</span>)</span></span>;</div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div></pre></td></tr></table></figure></p>
 <h3 id="3"><a href="#3" class="headerlink" title="3."></a>3.</h3><pre><code>In file included from fork.c:15:0:
 fork.c: In function ‘copy_mem’:
 ../include/linux/sched.h:189:1: error: ‘asm’ operand has impossible constraints
@@ -159,7 +159,7 @@ fork.c:55:2: note: in expansion of macro ‘set_base’
 <blockquote>
 <p>“  <em>You may not write a clobber description in a way that overlaps with an input or output operand. For example, you may not have an operand describing a register class with one member if you mention that register in the clobber list. Variables declared to live in specific registers , and used as asm input or output operands must have no part mentioned in the clobber description. There is no way for you to specify that an input operand is modified without also specifying it as an output operand.</em> ”     </p>
 </blockquote>
-<p>意即使用asm嵌入汇编语句时，若一个寄存器出现在“clobbered register”（即会被修改的寄存器）列表中，则其不能再出现于输出寄存器或输入寄存器列表中。include/linux/sched.h的第<strong>189行</strong>开始的代码如下:<br><figure class="highlight livescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#define _set_base(addr,base) \</span></span><br><span class="line"> __asm__(<span class="string">"movw %%dx,%0\n\t"</span> <span class="string">\</span> </span><br><span class="line">        <span class="string">"rorl $16,%%edx\n\t"</span> <span class="string">\</span></span><br><span class="line">        <span class="string">"movb %%dl,%1\n\t"</span> <span class="string">\</span></span><br><span class="line">        <span class="string">"movb %%dh,%2"</span> <span class="string">\</span></span><br><span class="line">        ::<span class="string">"m"</span> (*((addr)+<span class="number">2</span>)), <span class="string">\</span></span><br><span class="line">          <span class="string">"m"</span> (*((addr)+<span class="number">4</span>)), <span class="string">\</span></span><br><span class="line">          <span class="string">"m"</span> (*((addr)+<span class="number">7</span>)), <span class="string">\</span></span><br><span class="line">          <span class="string">"d"</span> (base)) <span class="string">\</span></span><br><span class="line">        :<span class="string">"dx"</span>)</span><br></pre></td></tr></table></figure></p>
+<p>意即使用asm嵌入汇编语句时，若一个寄存器出现在“clobbered register”（即会被修改的寄存器）列表中，则其不能再出现于输出寄存器或输入寄存器列表中。include/linux/sched.h的第<strong>189行</strong>开始的代码如下:<br><figure class="highlight livescript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#define _set_base(addr,base) \</span></div><div class="line"> __asm__(<span class="string">"movw %%dx,%0\n\t"</span> <span class="string">\</span> </div><div class="line">        <span class="string">"rorl $16,%%edx\n\t"</span> <span class="string">\</span></div><div class="line">        <span class="string">"movb %%dl,%1\n\t"</span> <span class="string">\</span></div><div class="line">        <span class="string">"movb %%dh,%2"</span> <span class="string">\</span></div><div class="line">        ::<span class="string">"m"</span> (*((addr)+<span class="number">2</span>)), <span class="string">\</span></div><div class="line">          <span class="string">"m"</span> (*((addr)+<span class="number">4</span>)), <span class="string">\</span></div><div class="line">          <span class="string">"m"</span> (*((addr)+<span class="number">7</span>)), <span class="string">\</span></div><div class="line">          <span class="string">"d"</span> (base)) <span class="string">\</span></div><div class="line">        :<span class="string">"dx"</span>)</div></pre></td></tr></table></figure></p>
 <p>可以看出寄存器<strong>dx</strong>同时出现在了输入寄存器列表和clobbered register列表中，因此编译无法通过。修改方法：将clobbered register list删了即可。<br>同样的问题还出现在如下几个地方：</p>
 <ul>
 <li><strong>include/linux/sched.h</strong>：  set_base，set_limit</li>
@@ -178,16 +178,16 @@ ld: Relocatable linking with relocations from format elf32-i386 (sched.o) to for
 <h3 id="5"><a href="#5" class="headerlink" title="5."></a>5.</h3><pre><code>../include/asm/segment.h: Assembler messages:
 ../include/asm/segment.h:27: Error: bad register name `%dil&apos;
 ../include/asm/segment.h:27: Error: bad register name `%sil&apos;
-</code></pre><p>include/asm/segment.h的第<strong>27</strong>行如下：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">extern</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">put_fs_byte</span><span class="params">(<span class="keyword">char</span> val,<span class="keyword">char</span> *addr)</span>   </span><br><span class="line"></span>&#123;</span><br><span class="line">    __asm__ (<span class="string">"movb %0,%%fs:%1"</span>::<span class="string">"r"</span> (val),<span class="string">"m"</span> (*addr));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+</code></pre><p>include/asm/segment.h的第<strong>27</strong>行如下：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">extern</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">put_fs_byte</span><span class="params">(<span class="keyword">char</span> val,<span class="keyword">char</span> *addr)</span>   </span></div><div class="line">&#123;</div><div class="line">    __asm__ (<span class="string">"movb %0,%%fs:%1"</span>::<span class="string">"r"</span> (val),<span class="string">"m"</span> (*addr));</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
 <p>其中<strong>“r”</strong>表示使用任意动态分配的寄存器，将其改为<strong>“q”</strong>即可。<strong>“q”</strong>表示使用动态分配字节可寻址寄存器（eax，ebx，ecx或edx）。（其中的原理我也不是很清楚，如果有人知道的话烦请留言说明，不胜感激！）</p>
 <h3 id="6"><a href="#6" class="headerlink" title="6."></a>6.</h3><pre><code>exec.c: In function ‘copy_strings’:
 exec.c:139:44: error: lvalue required as left operand of assignment
          !(pag = (char *) page[p/PAGE_SIZE] =
-</code></pre><p>fs/exec.c的第<strong>139行</strong>如下:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!(pag = (<span class="keyword">char</span> *) page[p/PAGE_SIZE]) &amp;&amp;</span><br><span class="line">    !(pag = (<span class="keyword">char</span> *) page[p/PAGE_SIZE] =</span><br><span class="line">       (<span class="keyword">unsigned</span> <span class="keyword">long</span> *) get_free_page())) </span><br><span class="line">     <span class="keyword">return</span> <span class="number">0</span>;</span><br></pre></td></tr></table></figure></p>
+</code></pre><p>fs/exec.c的第<strong>139行</strong>如下:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (!(pag = (<span class="keyword">char</span> *) page[p/PAGE_SIZE]) &amp;&amp;</div><div class="line">    !(pag = (<span class="keyword">char</span> *) page[p/PAGE_SIZE] =</div><div class="line">       (<span class="keyword">unsigned</span> <span class="keyword">long</span> *) get_free_page())) </div><div class="line">     <span class="keyword">return</span> <span class="number">0</span>;</div></pre></td></tr></table></figure></p>
 <p>在if的条件判断式中，依连等号的求值顺序，首先求值的表达式是<br><code>(char *) page[p/PAGE_SIZE] = (unsigned long *) get_free_page()</code></p>
-<p>这个是无法编译通过的，需要把它拆成两部分：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!(pag = (<span class="keyword">char</span> *) page[p/PAGE_SIZE])) &#123;</span><br><span class="line">      page[p/PAGE_SIZE] = (<span class="keyword">unsigned</span> <span class="keyword">long</span> *) get_free_page();</span><br><span class="line">      <span class="keyword">if</span> (!(pag = (<span class="keyword">char</span> *)page[p/PAGE_SIZE]))</span><br><span class="line">              <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>malloc.c中也存在类似问题，应将<strong>156行</strong>的<br><figure class="highlight xl"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">bdesc</span>-&gt;</span><span class="function"><span class="title">page</span> = bdesc-&gt;</span>freeptr = (void *) cp = get_free_page();</span><br></pre></td></tr></table></figure></p>
-<p>改为<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp = (<span class="name">char*</span>)get_free_page()<span class="comment">; </span></span><br><span class="line">bdesc-&gt;page = bdesc-&gt;freeptr = (<span class="name">void</span> *) cp;</span><br></pre></td></tr></table></figure></p>
+<p>这个是无法编译通过的，需要把它拆成两部分：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (!(pag = (<span class="keyword">char</span> *) page[p/PAGE_SIZE])) &#123;</div><div class="line">      page[p/PAGE_SIZE] = (<span class="keyword">unsigned</span> <span class="keyword">long</span> *) get_free_page();</div><div class="line">      <span class="keyword">if</span> (!(pag = (<span class="keyword">char</span> *)page[p/PAGE_SIZE]))</div><div class="line">              <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>malloc.c中也存在类似问题，应将<strong>156行</strong>的<br><figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="title">bdesc</span>-&gt;</span><span class="function"><span class="title">page</span> = bdesc-&gt;</span>freeptr = (void *) cp = get_free_page();</div></pre></td></tr></table></figure></p>
+<p>改为<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">cp = (<span class="name">char*</span>)get_free_page()<span class="comment">; </span></div><div class="line">bdesc-&gt;page = bdesc-&gt;freeptr = (<span class="name">void</span> *) cp;</div></pre></td></tr></table></figure></p>
 <h3 id="7"><a href="#7" class="headerlink" title="7."></a>7.</h3><pre><code>blk.h:87:6: error: #elif with no expression
  #elif
 </code></pre><p>把kernel/blk_drv/blk.h中第<strong>87行</strong>的<code>#elif</code>改为<code>#else</code>即可。</p>
@@ -247,7 +247,7 @@ In file included from /usr/include/features.h:395:0,
                  from tools/build.c:23:
 /usr/include/gnu/stubs.h:7:27: fatal error: gnu/stubs-32.h: No such file or directory
  # include &lt;gnu/stubs-32.h&gt;
-</code></pre><p>很显然这又是一个因64位系统上缺少32位库导致的问题（更多细节见<a href="http://stackoverflow.com/questions/7412548/gnu-stubs-32-h-no-such-file-or-directory" target="_blank" rel="external">这里</a>），从源里装个32位库即可：<br><figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo aptitude <span class="keyword">install</span> libc6-dev-i386</span><br></pre></td></tr></table></figure></p>
+</code></pre><p>很显然这又是一个因64位系统上缺少32位库导致的问题（更多细节见<a href="http://stackoverflow.com/questions/7412548/gnu-stubs-32-h-no-such-file-or-directory" target="_blank" rel="external">这里</a>），从源里装个32位库即可：<br><figure class="highlight cmake"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">sudo aptitude <span class="keyword">install</span> libc6-dev-i386</div></pre></td></tr></table></figure></p>
 <h3 id="11"><a href="#11" class="headerlink" title="11."></a>11.</h3><pre><code>tools/build.c: In function ‘main’:
 tools/build.c:72:4: warning: implicit declaration of function ‘MAJOR’ [-Wimplicit-function-declaration]
     major_root = MAJOR(sb.st_rdev);
@@ -257,7 +257,7 @@ tools/build.c:73:4: warning: implicit declaration of function ‘MINOR’ [-Wimp
 build.c:(.text+0xc7): undefined reference to `MAJOR&apos;
 build.c:(.text+0xe1): undefined reference to `MINOR&apos;
 collect2: error: ld returned 1 exit status
-</code></pre><p>build.c中包含的是<strong>标准库的头文件</strong> /usr/include/linux/fs.h ，但是这个头文件里并没有实现<code>MAJOR</code>和<code>MINOR</code>宏。解决方法很简单，从include/linux/fs.h中把这两个宏复制到build.c中即可：<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">#define MAJOR(<span class="name">a</span>) (((<span class="name">unsigned</span>)(<span class="name">a</span>))&gt;&gt;8)</span><br><span class="line">#define MINOR(<span class="name">a</span>) ((<span class="name">a</span>)&amp;0xff)</span><br></pre></td></tr></table></figure></p>
+</code></pre><p>build.c中包含的是<strong>标准库的头文件</strong> /usr/include/linux/fs.h ，但是这个头文件里并没有实现<code>MAJOR</code>和<code>MINOR</code>宏。解决方法很简单，从include/linux/fs.h中把这两个宏复制到build.c中即可：<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">#define MAJOR(<span class="name">a</span>) (((<span class="name">unsigned</span>)(<span class="name">a</span>))&gt;&gt;8)</div><div class="line">#define MINOR(<span class="name">a</span>) ((<span class="name">a</span>)&amp;0xff)</div></pre></td></tr></table></figure></p>
 <h3 id="12"><a href="#12" class="headerlink" title="12."></a>12.</h3><pre><code>tools/build boot/bootsect boot/setup tools/system /dev/hd6 &gt; Image
 /dev/hd6: No such file or directory
 Couldn&apos;t stat root device.
@@ -276,9 +276,9 @@ Couldn&apos;t stat root device.
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2016/02/20/compile-linux-0.11/" data-id="cipnq4nj2000b3j4kdvnkptmv" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2016/02/20/compile-linux-0.11/" data-id="ciwwxrtvm000f4r4kn7cg17kh" class="article-share-link">Share</a>
       
-        <a href="http://yoursite.com/2016/02/20/compile-linux-0.11/#disqus_thread" class="article-comment-link">Comments</a>
+        <a href="http://xyguo.github.io/2016/02/20/compile-linux-0.11/#disqus_thread" class="article-comment-link">Comments</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li></ul>
@@ -323,7 +323,7 @@ Couldn&apos;t stat root device.
   <div class="widget-wrap">
     <h3 class="widget-title">Categories</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Math/">Math</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/programming/">programming</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Math/">Math</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/english-writing/">english-writing</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/programming/">programming</a></li></ul>
     </div>
   </div>
 
@@ -333,7 +333,7 @@ Couldn&apos;t stat root device.
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Emacs/">Emacs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/distributed-system/">distributed-system</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/math/">math</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/programming/">programming</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/puzzle/">puzzle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Emacs/">Emacs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/distributed-system/">distributed-system</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/math/">math</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/programming/">programming</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/puzzle/">puzzle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/writing/">writing</a></li></ul>
     </div>
   </div>
 
@@ -343,7 +343,7 @@ Couldn&apos;t stat root device.
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Emacs/" style="font-size: 10px;">Emacs</a> <a href="/tags/Linux-Kernel/" style="font-size: 20px;">Linux Kernel</a> <a href="/tags/distributed-system/" style="font-size: 10px;">distributed-system</a> <a href="/tags/math/" style="font-size: 10px;">math</a> <a href="/tags/programming/" style="font-size: 10px;">programming</a> <a href="/tags/puzzle/" style="font-size: 10px;">puzzle</a> <a href="/tags/python/" style="font-size: 20px;">python</a>
+      <a href="/tags/Emacs/" style="font-size: 10px;">Emacs</a> <a href="/tags/Linux-Kernel/" style="font-size: 20px;">Linux Kernel</a> <a href="/tags/distributed-system/" style="font-size: 10px;">distributed-system</a> <a href="/tags/math/" style="font-size: 10px;">math</a> <a href="/tags/programming/" style="font-size: 10px;">programming</a> <a href="/tags/puzzle/" style="font-size: 10px;">puzzle</a> <a href="/tags/python/" style="font-size: 20px;">python</a> <a href="/tags/writing/" style="font-size: 10px;">writing</a>
     </div>
   </div>
 
@@ -352,7 +352,7 @@ Couldn&apos;t stat root device.
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a></li></ul>
     </div>
   </div>
 
@@ -363,6 +363,10 @@ Couldn&apos;t stat root device.
     <h3 class="widget-title">Recent Posts</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2017/02/19/english-writing-notes-on-style-book-1/">Reading notes on book &quot;Style - Lessons in Clarity and Grace&quot; -- Unit 3 - Actions</a>
+          </li>
         
           <li>
             <a href="/2016/03/26/mit-distributed-system-course-summary/">Summary for MIT 6.824- Course projects</a>
@@ -380,10 +384,6 @@ Couldn&apos;t stat root device.
             <a href="/2016/02/22/A-Superhard-Elementary-Math-Problem/">A Superhard Elementary Math Problem</a>
           </li>
         
-          <li>
-            <a href="/2016/02/20/numpy-with-cython/">Numpy with Cython</a>
-          </li>
-        
       </ul>
     </div>
   </div>
@@ -396,7 +396,7 @@ Couldn&apos;t stat root device.
   
   <div class="outer">
     <div id="footer-info" class="inner">
-      &copy; 2016 xyguo<br>
+      &copy; 2017 xyguo<br>
       Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>
@@ -417,7 +417,7 @@ Couldn&apos;t stat root device.
 <script>
   var disqus_shortname = 'xyguo';
   
-  var disqus_url = 'http://yoursite.com/2016/02/20/compile-linux-0.11/';
+  var disqus_url = 'http://xyguo.github.io/2016/02/20/compile-linux-0.11/';
   
   (function(){
     var dsq = document.createElement('script');

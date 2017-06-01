@@ -8,7 +8,7 @@
   <meta name="description" content="从以前的博客搬来的老文，记录了把之前编译出来的那个古老内核在bochs上运行起来的经过">
 <meta property="og:type" content="article">
 <meta property="og:title" content="调试在64位Debian上编译好的Linux 0.11（二）">
-<meta property="og:url" content="http://yoursite.com/2016/02/20/debug-linux-0.11-2/index.html">
+<meta property="og:url" content="http://xyguo.github.io/2016/02/20/debug-linux-0.11-2/index.html">
 <meta property="og:site_name" content="Coupon Collector">
 <meta property="og:description" content="从以前的博客搬来的老文，记录了把之前编译出来的那个古老内核在bochs上运行起来的经过">
 <meta property="og:updated_time" content="2016-06-20T07:24:54.000Z">
@@ -65,7 +65,7 @@
         <a id="nav-search-btn" class="nav-icon" title="Search"></a>
       </nav>
       <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://xyguo.github.io"></form>
       </div>
     </div>
   </div>
@@ -111,7 +111,7 @@
 RAMDISK = -DRAMDISK=512  #设定虚拟盘大小为512KB
 ROOT_DEV=FLOPPY
 LD    =ld -m elf_i386 -Ttext 0 -e startup_32
-</code></pre><h2 id="2-问题"><a href="#2-问题" class="headerlink" title="2.问题"></a>2.问题</h2><h3 id="2-在显示出“Loading-system”信息后就停止运行（续上篇文章）"><a href="#2-在显示出“Loading-system”信息后就停止运行（续上篇文章）" class="headerlink" title="2.在显示出“Loading system”信息后就停止运行（续上篇文章）"></a>2.在显示出“Loading system”信息后就停止运行（续<a href="http://blog.csdn.net/qqiseeu/article/details/16992565" target="_blank" rel="external">上篇文章</a>）</h3><p>类似的，<code>main()</code>中<code>drive_info=DRIVE_INFO</code>一行对应的汇编代码也使用了<code>rep</code>，而此时DF置位。在<code>main()</code>函数执行前使DF置位的命令只可能在boot/下的文件中出现。使用egrep寻找知：<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="regexp">~/Src/</span>LinuxKernel<span class="regexp">/0.11/</span>linux<span class="number">-0.11</span>-deb$ egrep -nr <span class="string">'\&lt;std\&gt;'</span> boot/</span><br><span class="line">boot/head.<span class="string">s:</span><span class="number">209</span>:    std</span><br></pre></td></tr></table></figure></p>
+</code></pre><h2 id="2-问题"><a href="#2-问题" class="headerlink" title="2.问题"></a>2.问题</h2><h3 id="2-在显示出“Loading-system”信息后就停止运行（续上篇文章）"><a href="#2-在显示出“Loading-system”信息后就停止运行（续上篇文章）" class="headerlink" title="2.在显示出“Loading system”信息后就停止运行（续上篇文章）"></a>2.在显示出“Loading system”信息后就停止运行（续<a href="http://blog.csdn.net/qqiseeu/article/details/16992565" target="_blank" rel="external">上篇文章</a>）</h3><p>类似的，<code>main()</code>中<code>drive_info=DRIVE_INFO</code>一行对应的汇编代码也使用了<code>rep</code>，而此时DF置位。在<code>main()</code>函数执行前使DF置位的命令只可能在boot/下的文件中出现。使用egrep寻找知：<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="regexp">~/Src/</span>LinuxKernel<span class="regexp">/0.11/</span>linux<span class="number">-0.11</span>-deb$ egrep -nr <span class="string">'\&lt;std\&gt;'</span> boot/</div><div class="line">boot/head.<span class="string">s:</span><span class="number">209</span>:    std</div></pre></td></tr></table></figure></p>
 <p>在213行加个<code>cld</code>就好。</p>
 <h3 id="3-又出现类似问题2-1的情况"><a href="#3-又出现类似问题2-1的情况" class="headerlink" title="3.又出现类似问题2.1的情况"></a>3.又出现类似问题2.1的情况</h3><p>使用gdb单步调试，发现在转入进程1并执行<code>init()</code>-&gt;<code>setup()</code>-&gt;<code>bread()</code>调用时，触发page fault，且在<code>do_no_page()</code>-&gt;<code>get_free_page()</code>时跳转到一个全零的内存区域。检查汇编代码发现<code>get_free_page()</code>的地址并没有错误，但是其代码应该在的地方被清零了。</p>
 <p>初步猜测是</p>
@@ -168,9 +168,9 @@ for (i=0; i&lt;4; i++) {
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2016/02/20/debug-linux-0.11-2/" data-id="cipnq4nl2001b3j4kqz1bgo5v" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2016/02/20/debug-linux-0.11-2/" data-id="ciwwxrtvw000m4r4kpadv8qvf" class="article-share-link">Share</a>
       
-        <a href="http://yoursite.com/2016/02/20/debug-linux-0.11-2/#disqus_thread" class="article-comment-link">Comments</a>
+        <a href="http://xyguo.github.io/2016/02/20/debug-linux-0.11-2/#disqus_thread" class="article-comment-link">Comments</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li></ul>
@@ -215,7 +215,7 @@ for (i=0; i&lt;4; i++) {
   <div class="widget-wrap">
     <h3 class="widget-title">Categories</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Math/">Math</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/programming/">programming</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Math/">Math</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/english-writing/">english-writing</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/programming/">programming</a></li></ul>
     </div>
   </div>
 
@@ -225,7 +225,7 @@ for (i=0; i&lt;4; i++) {
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Emacs/">Emacs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/distributed-system/">distributed-system</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/math/">math</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/programming/">programming</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/puzzle/">puzzle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Emacs/">Emacs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/distributed-system/">distributed-system</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/math/">math</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/programming/">programming</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/puzzle/">puzzle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/writing/">writing</a></li></ul>
     </div>
   </div>
 
@@ -235,7 +235,7 @@ for (i=0; i&lt;4; i++) {
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Emacs/" style="font-size: 10px;">Emacs</a> <a href="/tags/Linux-Kernel/" style="font-size: 20px;">Linux Kernel</a> <a href="/tags/distributed-system/" style="font-size: 10px;">distributed-system</a> <a href="/tags/math/" style="font-size: 10px;">math</a> <a href="/tags/programming/" style="font-size: 10px;">programming</a> <a href="/tags/puzzle/" style="font-size: 10px;">puzzle</a> <a href="/tags/python/" style="font-size: 20px;">python</a>
+      <a href="/tags/Emacs/" style="font-size: 10px;">Emacs</a> <a href="/tags/Linux-Kernel/" style="font-size: 20px;">Linux Kernel</a> <a href="/tags/distributed-system/" style="font-size: 10px;">distributed-system</a> <a href="/tags/math/" style="font-size: 10px;">math</a> <a href="/tags/programming/" style="font-size: 10px;">programming</a> <a href="/tags/puzzle/" style="font-size: 10px;">puzzle</a> <a href="/tags/python/" style="font-size: 20px;">python</a> <a href="/tags/writing/" style="font-size: 10px;">writing</a>
     </div>
   </div>
 
@@ -244,7 +244,7 @@ for (i=0; i&lt;4; i++) {
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a></li></ul>
     </div>
   </div>
 
@@ -255,6 +255,10 @@ for (i=0; i&lt;4; i++) {
     <h3 class="widget-title">Recent Posts</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2017/02/19/english-writing-notes-on-style-book-1/">Reading notes on book &quot;Style - Lessons in Clarity and Grace&quot; -- Unit 3 - Actions</a>
+          </li>
         
           <li>
             <a href="/2016/03/26/mit-distributed-system-course-summary/">Summary for MIT 6.824- Course projects</a>
@@ -272,10 +276,6 @@ for (i=0; i&lt;4; i++) {
             <a href="/2016/02/22/A-Superhard-Elementary-Math-Problem/">A Superhard Elementary Math Problem</a>
           </li>
         
-          <li>
-            <a href="/2016/02/20/numpy-with-cython/">Numpy with Cython</a>
-          </li>
-        
       </ul>
     </div>
   </div>
@@ -288,7 +288,7 @@ for (i=0; i&lt;4; i++) {
   
   <div class="outer">
     <div id="footer-info" class="inner">
-      &copy; 2016 xyguo<br>
+      &copy; 2017 xyguo<br>
       Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>
@@ -309,7 +309,7 @@ for (i=0; i&lt;4; i++) {
 <script>
   var disqus_shortname = 'xyguo';
   
-  var disqus_url = 'http://yoursite.com/2016/02/20/debug-linux-0.11-2/';
+  var disqus_url = 'http://xyguo.github.io/2016/02/20/debug-linux-0.11-2/';
   
   (function(){
     var dsq = document.createElement('script');

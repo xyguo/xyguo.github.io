@@ -8,7 +8,7 @@
   <meta name="description" content="从以前的博客搬来的老文，记录了把之前编译出来的那个古老内核在bochs上运行起来的经过">
 <meta property="og:type" content="article">
 <meta property="og:title" content="调试在64位Debian上编译好的Linux 0.11（一）">
-<meta property="og:url" content="http://yoursite.com/2016/02/20/debug-linux-0.11-1/index.html">
+<meta property="og:url" content="http://xyguo.github.io/2016/02/20/debug-linux-0.11-1/index.html">
 <meta property="og:site_name" content="Coupon Collector">
 <meta property="og:description" content="从以前的博客搬来的老文，记录了把之前编译出来的那个古老内核在bochs上运行起来的经过">
 <meta property="og:updated_time" content="2016-06-20T07:24:54.000Z">
@@ -65,7 +65,7 @@
         <a id="nav-search-btn" class="nav-icon" title="Search"></a>
       </nav>
       <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://xyguo.github.io"></form>
       </div>
     </div>
   </div>
@@ -112,7 +112,7 @@ RAMDISK = -DRAMDISK=512  #设定虚拟盘大小为512KB
 ROOT_DEV=FLOPPY
 LD    =ld -m elf_i386 -Ttext 0 -e startup_32
 </code></pre><h2 id="1-调试前的准备"><a href="#1-调试前的准备" class="headerlink" title="1.调试前的准备"></a>1.调试前的准备</h2><h3 id="1-制作内核引导Image"><a href="#1-制作内核引导Image" class="headerlink" title="1.制作内核引导Image"></a>1.制作内核引导Image</h3><p>为了把编译好的内核镜像放到bochs中运行，首先制作内核引导Image，具体为（参考<a href="http://book.douban.com/subject/1481173/" target="_blank" rel="external">Linux内核完全剖析</a>）：</p>
-<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">#也可以用下述命令替换顶层Makefile中的disk目标下的命令</span><br><span class="line"><span class="selector-tag">dd</span> <span class="keyword">if</span>=Image of=bootimage-fda<span class="selector-class">.img</span></span><br><span class="line"><span class="selector-tag">dd</span> bs=<span class="number">1024</span> <span class="keyword">if</span>=/dev/zero of=bootimage-fda<span class="selector-class">.img</span> seek=<span class="number">256</span> count=<span class="number">1184</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">#也可以用下述命令替换顶层Makefile中的disk目标下的命令</div><div class="line"><span class="selector-tag">dd</span> <span class="keyword">if</span>=Image of=bootimage-fda<span class="selector-class">.img</span></div><div class="line"><span class="selector-tag">dd</span> bs=<span class="number">1024</span> <span class="keyword">if</span>=/dev/zero of=bootimage-fda<span class="selector-class">.img</span> seek=<span class="number">256</span> count=<span class="number">1184</span></div></pre></td></tr></table></figure>
 <p>其中<code>Image</code>是之前编译出的内核镜像。上述操作得到一个大小为1.44MB的Image文件<code>bootimage-fda.img</code>，将作为在bochs中使用的引导盘。注意此时我们仍未创建根文件系统，而在Makefile中设置了<code>ROOT_DEV=FLOPPY</code>，因此正常情况下在fork出进程1、进程1调用<code>setup((void*)&amp;drive_info)</code>安装根文件系统时，会提示插入含有根文件系统的软盘，不过这暂时不用担心。</p>
 <h3 id="2-设置bochs"><a href="#2-设置bochs" class="headerlink" title="2.设置bochs"></a>2.设置bochs</h3><p>接下来设置bochs，仍参考<a href="http://book.douban.com/subject/1481173/" target="_blank" rel="external">Linux内核完全剖析</a>，但由于书中使用的bochs版本较老，有些选项的写法需要修改：</p>
 <pre><code>./bochsrc-fda.bxrc
@@ -131,7 +131,7 @@ keyboard: paste_delay=100000, serial_delay=200
 cpu: count=1, ips=4000000
 mouse: enabled=0
 </code></pre><p>注意其中用到的<code>diskb.img</code>与<code>hdc-0.11-new.img</code>是<a href="http://www.oldlinux.org/Linux.old/bochs/linux-0.11-devel-060625.zip" target="_blank" rel="external">这个包</a>提供的。其中也包含了做好的根文件系统镜像，可以直接用。然后就可以直接运行系统了！</p>
-<figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">bochs </span>-f <span class="keyword">bochsrc-fda.bxrc</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">bochs </span>-f <span class="keyword">bochsrc-fda.bxrc</span></div></pre></td></tr></table></figure>
 <h3 id="3-设置添加了gdb-stub功能的bochs"><a href="#3-设置添加了gdb-stub功能的bochs" class="headerlink" title="3.设置添加了gdb-stub功能的bochs"></a>3.设置添加了gdb-stub功能的bochs</h3><p>调试C程序代码时很多时候还是用gdb更为方便，因此可以专门编译出一份开启了<code>gdb-stub</code>功能的bochs，并将其重命名为bochs-gdb以与原来的bochs区分。若要换用开启了“gdb-stub”功能的bochs进行调试，则给所有Makefile文件中的CFLAGS加上 <strong>-g</strong> 选项，去除所有LDFLAGS中的 <strong>-s</strong> 选项。此时system模块由于附加了大量调试信息，大小超过了顶层Makefile中设定的限制<code>SYSSIZE = 0x3000</code>,因此可将顶层Makefile中的<code>tools/system</code>目标修改如下：</p>
 <pre><code>tools/system:    boot/head.o init/main.o \
                 $(ARCHIVES) $(DRIVERS) $(MATH) $(LIBS)
@@ -174,7 +174,7 @@ Loading system ...
 164       if (write(1,buf,c)!=c)
 165           die(&quot;Write call failed&quot;);
 166    close(id);
-</code></pre><p>可以看出，build程序先读取system模块的GCC_HEADER（实际上就是ELF头）判断文件格式的合法性，然后抛弃该文件头，把剩下的内容添加到Image文件中。这里有一个隐含的假设：system模块的ELF头大小就是1KB！然而实际上，这个用现代版本gcc编译出来的目标文件，其ELF头的大小是4KB（这也可以通过hexdump看出）。因此build程序实际上应该丢弃system模块前4KB的内容。在163行前加上下述代码即可：<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/* The header size <span class="keyword">is</span> <span class="number">4</span>*GCC_HEADER (<span class="number">4</span>KB) <span class="keyword">on</span> <span class="keyword">my</span> machine*/</span><br><span class="line">	<span class="keyword">for</span> (i=<span class="number">0</span>; i&lt;<span class="number">3</span>; i++)</span><br><span class="line">		<span class="keyword">if</span> (<span class="built_in">read</span>(<span class="built_in">id</span>,buf,GCC_HEADER) != GCC_HEADER)</span><br><span class="line">			die(<span class="string">"Unable to read header of 'system'"</span>);</span><br></pre></td></tr></table></figure></p>
+</code></pre><p>可以看出，build程序先读取system模块的GCC_HEADER（实际上就是ELF头）判断文件格式的合法性，然后抛弃该文件头，把剩下的内容添加到Image文件中。这里有一个隐含的假设：system模块的ELF头大小就是1KB！然而实际上，这个用现代版本gcc编译出来的目标文件，其ELF头的大小是4KB（这也可以通过hexdump看出）。因此build程序实际上应该丢弃system模块前4KB的内容。在163行前加上下述代码即可：<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">/* The header size <span class="keyword">is</span> <span class="number">4</span>*GCC_HEADER (<span class="number">4</span>KB) <span class="keyword">on</span> <span class="keyword">my</span> machine*/</div><div class="line">	<span class="keyword">for</span> (i=<span class="number">0</span>; i&lt;<span class="number">3</span>; i++)</div><div class="line">		<span class="keyword">if</span> (<span class="built_in">read</span>(<span class="built_in">id</span>,buf,GCC_HEADER) != GCC_HEADER)</div><div class="line">			die(<span class="string">"Unable to read header of 'system'"</span>);</div></pre></td></tr></table></figure></p>
 <h3 id="2-在显示出“Loading-system”信息后就停止运行"><a href="#2-在显示出“Loading-system”信息后就停止运行" class="headerlink" title="2.在显示出“Loading system”信息后就停止运行"></a>2.在显示出“Loading system”信息后就停止运行</h3><p>按正常情况，应该是在<code>mount_root()</code>函数显示出</p>
 <blockquote>
 <p>Insert root floppy and press ENTER</p>
@@ -218,9 +218,9 @@ Loading system ...
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2016/02/20/debug-linux-0.11-1/" data-id="cipnq4nkz00183j4knfs2re8p" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2016/02/20/debug-linux-0.11-1/" data-id="ciwwxrtvg000a4r4ktw53ahok" class="article-share-link">Share</a>
       
-        <a href="http://yoursite.com/2016/02/20/debug-linux-0.11-1/#disqus_thread" class="article-comment-link">Comments</a>
+        <a href="http://xyguo.github.io/2016/02/20/debug-linux-0.11-1/#disqus_thread" class="article-comment-link">Comments</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li></ul>
@@ -265,7 +265,7 @@ Loading system ...
   <div class="widget-wrap">
     <h3 class="widget-title">Categories</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Math/">Math</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/programming/">programming</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Math/">Math</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/english-writing/">english-writing</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/programming/">programming</a></li></ul>
     </div>
   </div>
 
@@ -275,7 +275,7 @@ Loading system ...
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Emacs/">Emacs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/distributed-system/">distributed-system</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/math/">math</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/programming/">programming</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/puzzle/">puzzle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Emacs/">Emacs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/distributed-system/">distributed-system</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/math/">math</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/programming/">programming</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/puzzle/">puzzle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/writing/">writing</a></li></ul>
     </div>
   </div>
 
@@ -285,7 +285,7 @@ Loading system ...
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Emacs/" style="font-size: 10px;">Emacs</a> <a href="/tags/Linux-Kernel/" style="font-size: 20px;">Linux Kernel</a> <a href="/tags/distributed-system/" style="font-size: 10px;">distributed-system</a> <a href="/tags/math/" style="font-size: 10px;">math</a> <a href="/tags/programming/" style="font-size: 10px;">programming</a> <a href="/tags/puzzle/" style="font-size: 10px;">puzzle</a> <a href="/tags/python/" style="font-size: 20px;">python</a>
+      <a href="/tags/Emacs/" style="font-size: 10px;">Emacs</a> <a href="/tags/Linux-Kernel/" style="font-size: 20px;">Linux Kernel</a> <a href="/tags/distributed-system/" style="font-size: 10px;">distributed-system</a> <a href="/tags/math/" style="font-size: 10px;">math</a> <a href="/tags/programming/" style="font-size: 10px;">programming</a> <a href="/tags/puzzle/" style="font-size: 10px;">puzzle</a> <a href="/tags/python/" style="font-size: 20px;">python</a> <a href="/tags/writing/" style="font-size: 10px;">writing</a>
     </div>
   </div>
 
@@ -294,7 +294,7 @@ Loading system ...
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a></li></ul>
     </div>
   </div>
 
@@ -305,6 +305,10 @@ Loading system ...
     <h3 class="widget-title">Recent Posts</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2017/02/19/english-writing-notes-on-style-book-1/">Reading notes on book &quot;Style - Lessons in Clarity and Grace&quot; -- Unit 3 - Actions</a>
+          </li>
         
           <li>
             <a href="/2016/03/26/mit-distributed-system-course-summary/">Summary for MIT 6.824- Course projects</a>
@@ -322,10 +326,6 @@ Loading system ...
             <a href="/2016/02/22/A-Superhard-Elementary-Math-Problem/">A Superhard Elementary Math Problem</a>
           </li>
         
-          <li>
-            <a href="/2016/02/20/numpy-with-cython/">Numpy with Cython</a>
-          </li>
-        
       </ul>
     </div>
   </div>
@@ -338,7 +338,7 @@ Loading system ...
   
   <div class="outer">
     <div id="footer-info" class="inner">
-      &copy; 2016 xyguo<br>
+      &copy; 2017 xyguo<br>
       Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>
@@ -359,7 +359,7 @@ Loading system ...
 <script>
   var disqus_shortname = 'xyguo';
   
-  var disqus_url = 'http://yoursite.com/2016/02/20/debug-linux-0.11-1/';
+  var disqus_url = 'http://xyguo.github.io/2016/02/20/debug-linux-0.11-1/';
   
   (function(){
     var dsq = document.createElement('script');
