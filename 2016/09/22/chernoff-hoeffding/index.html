@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8">
   
-  <title>A Superhard Elementary Math Problem | Coupon Collector</title>
+  <title>Chernoff-Hoeffding Bound | Coupon Collector</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="从Quora上看来的一个很有意思的竞赛题">
+  <meta name="description" content="基本的中心不等式">
 <meta property="og:type" content="article">
-<meta property="og:title" content="A Superhard Elementary Math Problem">
-<meta property="og:url" content="http://xyguo.github.io/2016/02/22/A-Superhard-Elementary-Math-Problem/index.html">
+<meta property="og:title" content="Chernoff-Hoeffding Bound">
+<meta property="og:url" content="http://xyguo.github.io/2016/09/22/chernoff-hoeffding/index.html">
 <meta property="og:site_name" content="Coupon Collector">
-<meta property="og:description" content="从Quora上看来的一个很有意思的竞赛题">
-<meta property="og:updated_time" content="2017-06-01T11:08:25.000Z">
+<meta property="og:description" content="基本的中心不等式">
+<meta property="og:updated_time" content="2017-06-01T11:09:59.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="A Superhard Elementary Math Problem">
-<meta name="twitter:description" content="从Quora上看来的一个很有意思的竞赛题">
+<meta name="twitter:title" content="Chernoff-Hoeffding Bound">
+<meta name="twitter:description" content="基本的中心不等式">
   
     <link rel="alternate" href="/atom.xml" title="Coupon Collector" type="application/atom+xml">
   
@@ -71,10 +71,10 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main"><article id="post-A-Superhard-Elementary-Math-Problem" class="article article-type-post" itemscope itemprop="blogPost">
+        <section id="main"><article id="post-chernoff-hoeffding" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2016/02/22/A-Superhard-Elementary-Math-Problem/" class="article-date">
-  <time datetime="2016-02-22T02:29:22.000Z" itemprop="datePublished">2016-02-22</time>
+    <a href="/2016/09/22/chernoff-hoeffding/" class="article-date">
+  <time datetime="2016-09-22T02:29:22.000Z" itemprop="datePublished">2016-09-22</time>
 </a>
     
   <div class="article-category">
@@ -89,7 +89,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      A Superhard Elementary Math Problem
+      Chernoff-Hoeffding Bound
     </h1>
   
 
@@ -97,35 +97,52 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h1 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h1><blockquote>
-<p>设$a$和$b$是正整数，且$ab+1$整除$a^2+b^2$，求证：$\frac{a^2+b^2}{ab+1}$是完全平方数</p>
-</blockquote>
-<p>这个故事是我在Quora上看来的。正如文章的标题所述，这是个非常初等的问题：它可以用完全初等的语言描述，而且证明所需的数学工具也是非常初等的————事实上文章最后会给出完整的证明，非常简短，任何人都能轻易地理解。</p>
-<p>然而，证明的思路却非常难想到：这个问题是1988年IMO（国际数学奥林匹克竞赛）的最后一题。比赛前这题目首先被提交给IMO的出题委员会审查，但没有一个人会做。于是后来这道题又被送给了澳大利亚（或者是奥地利？我记不太清原文中是Australia还是Austria了）的4名数论专家，也没有一个能在规定的6小时内解决这道题。因此这道题被归类到“superhard”那一档，并作为当年IMO的压轴题。</p>
-<p>到了比赛时，有12名选手都在规定时间内把该题解决了，其中一个就是2010年的菲尔兹奖得主吴宝珠。而在那些<strong>没有</strong>做出这题的选手中，也有一个后来的菲尔兹奖得主————陶哲轩。（当然这并不能说明陶哲轩就不够厉害，要知道那时他才13岁）</p>
-<hr>
-<h1 id="Proof"><a href="#Proof" class="headerlink" title="Proof"></a>Proof</h1><p>我们用一个称为“无穷下降”的技巧来证明这个问题：所谓“无穷下降”，就是说假设整数$A$满足某个性质$P$，通过一些变换，我们可以得到一个整数$A’&lt;A$也满足$P$，依次类推就可以构造出一个无穷下降的整数列。当$A$的定义域是正整数集合时，由于不存在无穷下降的正整数列，就可以得到一个矛盾。</p>
-<p>反证法：假设存在正整数$a$、$b$使$\frac{a^2+b^2}{ab+1}$<strong>不是</strong>完全平方数，在所有满足上述条件的$a$、$b$中选一对使$a+b$<strong>最小</strong>的，并设$k=\frac{a^2+b^2}{ab+1}$。<br>由于这里$a$、$b$的角色完全是对称的，因此不妨假设$a\geq b$，由$k=\frac{a^2+b^2}{ab+1}$知<br>$$<br>a^2−kba+(b^2−k)=0<br>$$<br>也即$a$是下述二次方程<br>$$<br>X^2-kbX+(b^2-k)=0<br>$$<br>的一个根。</p>
-<p><strong>证明的关键思路在上述方程的另一个根身上</strong>：设另一个根为$a’$，则由二次方程根的性质有<br>\begin{align}<br>&amp; a+a’=kb \\<br>&amp; aa’=b^2-k<br>\end{align}</p>
-<p>通过上面两个式子我们可以得到几个结论：</p>
+        <h2 id="引文"><a href="#引文" class="headerlink" title="引文"></a>引文</h2><p>中心不等式（Concentration Inequality）是分析随机算法的经典工具，在机器学习算法的理论分析中也用的特别多。为了学习这方面的知识，刚开始我选择的是Massart和Lugosi所著的<a href="http://book.douban.com/subject/20500140/" target="_blank" rel="external">Concentration Inequalities</a>，无奈数学水平不够，看了一章就实在看不下去了。后来换了本简单一些的<a href="http://book.douban.com/subject/4563191/" target="_blank" rel="external">Concentration of Measure for the Analysis of Randomized Algorithms</a>，总算是能往后翻了。这个系列的文章作为该书的读书笔记，希望能够督促自己坚持读完。</p>
+<p>Concentration of meature可简单地理解为随机变量在其期望处“聚集”的行为。概率论中已经提供了两个经典工具————大数定律及中心极限定理————来刻画这种现象，然而它们所给出的结果存在几点不足：</p>
 <ul>
-<li>由$a+a’=kb$知$a’$是整数</li>
-<li>由$aa’=b^2-k$知$a’\neq 0$（由最开始时的假设，$k$不是完全平方数，因此$b^2-k\neq 0$）</li>
-<li>$a’=\frac{b^2-k}{a}&lt;a$（由假设$a\geq b$）。</li>
+<li>上述结果只刻画了渐进情况下的性质，然而在分析实际算法时我们更青睐能够应用于finite case的结果</li>
+<li>上述经典工具给出的是qualitative的结果，但我们更希望有quantitative的结果，也即明确的收敛率</li>
+<li>上述经典工具给出的结果都基于独立性的假设，然而对于很多复杂的随机算法，独立性是不满足的，因此我们需要不依赖独立性假设的工具。</li>
 </ul>
-<p>注意到$a’$严格小于$a$，如果能证明$a’$是正整数的话，则因$a’+b&lt;a+b$，就与之前$a+b$最小的假设产生了矛盾，也就得出了我们想要的结论。事实上这是可以的：假设$a’&lt;0$，则</p>
-<p>$$<br>0=a’^2-ka’b+(b^2-k)&gt;a’^2+k+b^2-k=0<br>$$</p>
-<p>产生矛盾，因此必有$a’&gt;0$，证毕。</p>
+<h2 id="Chernoff-Bound"><a href="#Chernoff-Bound" class="headerlink" title="Chernoff Bound"></a>Chernoff Bound</h2><p>Chernoff bounding technique指的是用moment-generating function来处理多个随机变量之和的期望的技巧。所谓moment-generating function被定义为随机变量$X$的指数函数的期望$E[e^{\lambda X}]$。</p>
+<p>先来看一个简单的例子：考虑<strong>独立同分布</strong>的Bernoulli随机变量 $X_i\sim \text{Bernoulli}(p)$ 及它们的和$X=\sum_{i\in[n]}X_i$，易见$X_i\sim \text{Binomial}(n, p)$。现在要估计$X$偏离其期望一定距离的概率，即$\Pr[X&gt;n(p+t)]$. 先考虑一个一般性的情况：估计$\Pr[X&gt;m]$. 由Markov不等式易得</p>
+<p>\begin{align}<br>\Pr[X&gt;m] &amp;= \Pr[e^{\lambda X}&gt;e^{\lambda m}] \\<br>&amp;\leq \frac{E[e^{\lambda X}]}{e^{\lambda m}}<br>\end{align}</p>
+<p>根据$X_i$的独立性，上述式子中的moment-generating function可写成</p>
+<p>\begin{align}<br>E[e^{\lambda X}] &amp;= E[e^{\lambda\sum_i X_i}] \\<br>&amp;= E[\prod_i e^{\lambda X_i}] \\<br>&amp;= \prod_i E[e^{\lambda X_i}] \\<br>&amp;= (pe^\lambda+q)^n<br>\end{align}</p>
+<p>其中$q=1-p$.再令$m=(p+t)n$，原不等式变为</p>
+<p>$$\Pr[X&gt;m]\leq\left(\frac{pe^\lambda+q}{e^{\lambda(p+t)}}\right)^n$$</p>
+<p>将上述不等式右边视为$\lambda$的函数，找一个$\lambda&gt;0$使右边最小，由此我们得到基本的Chernoff bound：</p>
+<p>\begin{align}<br>\Pr[X&gt;(p+t)n] &amp;\leq \left(\left(\frac{p}{p+t} \right)^{p+t} \left(\frac{q}{q-t}\right)^{q-t}\right)^n \\<br>&amp;= \left[\text{exp}\left(-(p+t)\text{ln}\frac{p+t}{p}-(q-t)\text{ln}\frac{q-t}{q}\right)\right]^n \\<br>&amp;= \text{exp}\left(-nD_{KL}(p+t||p)\right)<br>\end{align}</p>
+<p>其中$D_{KL}(\cdot||\cdot)$是<a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence" target="_blank" rel="external">KL-Divergence</a>.上述bound说明，当实际分布（的参数）是$(p,q)$时，观测到经验分布$(p+t,q-t)$的概率随着样本大小$n$的增加指数下降，且下降速率与实际分布及经验分布的KL-Divergence密切相关。</p>
+<h2 id="Chernoff-Hoeffding-bound"><a href="#Chernoff-Hoeffding-bound" class="headerlink" title="Chernoff-Hoeffding bound"></a>Chernoff-Hoeffding bound</h2><p>之前Chernoff bound的推导是在$X_i$为独立同分布的Bernoulli随机变量的假定下进行的，现在我们把上述bound推广到$X_i$是<strong>任意$[0,1]$间的独立随机变量</strong>的情况。首先考虑$X_i$是独立但<strong>非</strong>同分布的Bernoulli随机变量的情况。此时$X$的moment-generating function变为</p>
+<p>$$E[e^{\lambda X}] = \prod_i(p_ie^\lambda+q_i)$$</p>
+<p>根据<a href="https://en.wikipedia.org/wiki/Inequality_of_arithmetic_and_geometric_means" target="_blank" rel="external">Arithmetic-Geometric Mean Inequality</a>易得</p>
+<p>\begin{align}<br>E[e^{\lambda X}] &amp;= \prod_i(p_ie^\lambda+q_i) \\<br>&amp;\leq\left(\frac{\sum_i(p_ie^\lambda+q_i)}{n}\right)^n \\<br>&amp;= (pe^\lambda+q)^n<br>\end{align}</p>
+<p>其中$p=\sum_ip_i/n, q=1-p$. 易见此时bound又变回了之前独立同分布时的形式，因此上一节得到的bound依然成立。</p>
+<p>接下来考虑$X_i$是$[0,1]$上任意（既可以是离散也可以是连续的）独立随机变量的情况，使用的技巧是由Hoeffding提出的，因此最后得到的bound也叫Chernoff-Hoeffding bound。这里要利用函数$e^{\lambda x}$的凸性：在区间$[0,1]$上，$e^{\lambda x}$的图像总在连接点$(0,1)$及$(1,e^\lambda)$的直线之下。该直线的方程为$y=(e^\lambda-1)x+1$，因此有</p>
+<p>$$E[e^{\lambda X_i}] \leq E[(e^\lambda-1)X_i+1] = p_ie^\lambda+q_i$$</p>
+<p>故有</p>
+<p>$$E[e^{\lambda X}] \leq \prod_i E[e^{\lambda X_i}] \leq \prod_i(p_ie^\lambda+q_i)$$</p>
+<p>这与前述$X_i$是独立非同分布Bernoulli随机变量的情况一致，因此上一节得到的bound依然成立。</p>
+<h2 id="Variance-bound"><a href="#Variance-bound" class="headerlink" title="Variance bound"></a>Variance bound</h2><p>之前得到的bound都只利用了一阶矩（期望）的信息，作为Chernoff bounding technique的一个简单应用，我们考虑引入二阶矩（方差）的信息。这里的关键技巧是利用不等式$e^x\leq1+x+x^2, (0&lt;|x|&lt;1)$为moment-generating function构造上界，从而引入二阶矩（$x^2$）。设$\mu_i=E[X_i], \mu=E[X]$，易知</p>
+<p>\begin{align}<br>\Pr[X&gt;\mu+t] &amp;= \Pr[\sum_i(X_i-\mu_i)&gt;t] \\<br>&amp;= \Pr[e^{\lambda\sum_i (X_i-\mu_i)}&gt;e^{\lambda t}] \\<br>&amp;\leq E[e^{\lambda\sum_i(X_i-\mu_i)}]/e^{\lambda t}<br>\end{align}</p>
+<p>利用之前提到的不等式及$e^x\geq1+x$，并假设$\forall i\in[n], \text{max}(\mu_i,1-\mu_i)&lt;1/\lambda$，有</p>
+<p>\begin{align}<br>E[e^{\lambda\sum_i(X_i-\mu_i)}] &amp;= \prod_iE[e^{\lambda(X_i-\mu_i)}] \\<br>&amp;\leq \prod_i E[1+\lambda(X_i-\mu_i)+\lambda^2(X_i-\mu_i)^2] \\<br>&amp;= \prod_i(1+\lambda^2\sigma_i^2) \\<br>&amp;\leq \prod_ie^{\lambda^2\sigma_i^2} \\<br>&amp;= e^{\lambda^2\sigma^2}<br>\end{align}</p>
+<p>其中$\sigma_i^2,\sigma^2$分别是$X_i,X$的方差。综上，有</p>
+<p>$$\Pr[X&gt;\mu+t] \leq e^{\lambda^2\sigma^2}/e^{\lambda t}$$</p>
+<p>针对$\lambda&lt;\text{max}(\mu_i,1-\mu_i)$最小化该上界，易知当$\lambda=t/2\sigma^2$时有</p>
+<p>$$\Pr[X&gt;\mu+t] \leq \text{exp}\left(\frac{-t^2}{4\sigma^2}\right)$$</p>
+<p>其中$t&lt;2\sigma^2/(\text{max}_i\ \text{max}(\mu_i, 1-\mu_i))$</p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://xyguo.github.io/2016/02/22/A-Superhard-Elementary-Math-Problem/" data-id="cj3e7fp03000h9v4ke5qwfqsk" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2016/09/22/chernoff-hoeffding/" data-id="cj3e7fp0r000v9v4k7ha58jjf" class="article-share-link">Share</a>
       
-        <a href="http://xyguo.github.io/2016/02/22/A-Superhard-Elementary-Math-Problem/#disqus_thread" class="article-comment-link">Comments</a>
+        <a href="http://xyguo.github.io/2016/09/22/chernoff-hoeffding/#disqus_thread" class="article-comment-link">Comments</a>
       
       
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/math/">math</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/puzzle/">puzzle</a></li></ul>
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/math/">math</a></li></ul>
 
     </footer>
   </div>
@@ -133,19 +150,19 @@
     
 <nav id="article-nav">
   
-    <a href="/2016/03/20/Python-generators-coroutines-and-asyncio-library-1/" id="article-nav-newer" class="article-nav-link-wrap">
+    <a href="/2017/02/19/english-writing-notes-on-style-book-1/" id="article-nav-newer" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Newer</strong>
       <div class="article-nav-title">
         
-          Python coroutines and asyncio library (1)
+          Reading notes on book &quot;Style - Lessons in Clarity and Grace&quot; -- Unit 3 - Actions
         
       </div>
     </a>
   
   
-    <a href="/2016/02/20/numpy-with-cython/" id="article-nav-older" class="article-nav-link-wrap">
+    <a href="/2016/03/26/mit-distributed-system-course-summary/" id="article-nav-older" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">Numpy with Cython</div>
+      <div class="article-nav-title">Summary for MIT 6.824- Course projects</div>
     </a>
   
 </nav>
@@ -261,7 +278,7 @@
 <script>
   var disqus_shortname = 'xyguo';
   
-  var disqus_url = 'http://xyguo.github.io/2016/02/22/A-Superhard-Elementary-Math-Problem/';
+  var disqus_url = 'http://xyguo.github.io/2016/09/22/chernoff-hoeffding/';
   
   (function(){
     var dsq = document.createElement('script');

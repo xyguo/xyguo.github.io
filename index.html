@@ -191,12 +191,92 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://xyguo.github.io/2017/02/19/english-writing-notes-on-style-book-1/" data-id="cj3e79gyd0000fo4konifigbn" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2017/02/19/english-writing-notes-on-style-book-1/" data-id="cj3e7fp1000129v4kinc0quge" class="article-share-link">Share</a>
       
         <a href="http://xyguo.github.io/2017/02/19/english-writing-notes-on-style-book-1/#disqus_thread" class="article-comment-link">Comments</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/writing/">writing</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-chernoff-hoeffding" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/09/22/chernoff-hoeffding/" class="article-date">
+  <time datetime="2016-09-22T02:29:22.000Z" itemprop="datePublished">2016-09-22</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Math/">Math</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/09/22/chernoff-hoeffding/">Chernoff-Hoeffding Bound</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="引文"><a href="#引文" class="headerlink" title="引文"></a>引文</h2><p>中心不等式（Concentration Inequality）是分析随机算法的经典工具，在机器学习算法的理论分析中也用的特别多。为了学习这方面的知识，刚开始我选择的是Massart和Lugosi所著的<a href="http://book.douban.com/subject/20500140/" target="_blank" rel="external">Concentration Inequalities</a>，无奈数学水平不够，看了一章就实在看不下去了。后来换了本简单一些的<a href="http://book.douban.com/subject/4563191/" target="_blank" rel="external">Concentration of Measure for the Analysis of Randomized Algorithms</a>，总算是能往后翻了。这个系列的文章作为该书的读书笔记，希望能够督促自己坚持读完。</p>
+<p>Concentration of meature可简单地理解为随机变量在其期望处“聚集”的行为。概率论中已经提供了两个经典工具————大数定律及中心极限定理————来刻画这种现象，然而它们所给出的结果存在几点不足：</p>
+<ul>
+<li>上述结果只刻画了渐进情况下的性质，然而在分析实际算法时我们更青睐能够应用于finite case的结果</li>
+<li>上述经典工具给出的是qualitative的结果，但我们更希望有quantitative的结果，也即明确的收敛率</li>
+<li>上述经典工具给出的结果都基于独立性的假设，然而对于很多复杂的随机算法，独立性是不满足的，因此我们需要不依赖独立性假设的工具。</li>
+</ul>
+<h2 id="Chernoff-Bound"><a href="#Chernoff-Bound" class="headerlink" title="Chernoff Bound"></a>Chernoff Bound</h2><p>Chernoff bounding technique指的是用moment-generating function来处理多个随机变量之和的期望的技巧。所谓moment-generating function被定义为随机变量$X$的指数函数的期望$E[e^{\lambda X}]$。</p>
+<p>先来看一个简单的例子：考虑<strong>独立同分布</strong>的Bernoulli随机变量 $X_i\sim \text{Bernoulli}(p)$ 及它们的和$X=\sum_{i\in[n]}X_i$，易见$X_i\sim \text{Binomial}(n, p)$。现在要估计$X$偏离其期望一定距离的概率，即$\Pr[X&gt;n(p+t)]$. 先考虑一个一般性的情况：估计$\Pr[X&gt;m]$. 由Markov不等式易得</p>
+<p>\begin{align}<br>\Pr[X&gt;m] &amp;= \Pr[e^{\lambda X}&gt;e^{\lambda m}] \\<br>&amp;\leq \frac{E[e^{\lambda X}]}{e^{\lambda m}}<br>\end{align}</p>
+<p>根据$X_i$的独立性，上述式子中的moment-generating function可写成</p>
+<p>\begin{align}<br>E[e^{\lambda X}] &amp;= E[e^{\lambda\sum_i X_i}] \\<br>&amp;= E[\prod_i e^{\lambda X_i}] \\<br>&amp;= \prod_i E[e^{\lambda X_i}] \\<br>&amp;= (pe^\lambda+q)^n<br>\end{align}</p>
+<p>其中$q=1-p$.再令$m=(p+t)n$，原不等式变为</p>
+<p>$$\Pr[X&gt;m]\leq\left(\frac{pe^\lambda+q}{e^{\lambda(p+t)}}\right)^n$$</p>
+<p>将上述不等式右边视为$\lambda$的函数，找一个$\lambda&gt;0$使右边最小，由此我们得到基本的Chernoff bound：</p>
+<p>\begin{align}<br>\Pr[X&gt;(p+t)n] &amp;\leq \left(\left(\frac{p}{p+t} \right)^{p+t} \left(\frac{q}{q-t}\right)^{q-t}\right)^n \\<br>&amp;= \left[\text{exp}\left(-(p+t)\text{ln}\frac{p+t}{p}-(q-t)\text{ln}\frac{q-t}{q}\right)\right]^n \\<br>&amp;= \text{exp}\left(-nD_{KL}(p+t||p)\right)<br>\end{align}</p>
+<p>其中$D_{KL}(\cdot||\cdot)$是<a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence" target="_blank" rel="external">KL-Divergence</a>.上述bound说明，当实际分布（的参数）是$(p,q)$时，观测到经验分布$(p+t,q-t)$的概率随着样本大小$n$的增加指数下降，且下降速率与实际分布及经验分布的KL-Divergence密切相关。</p>
+<h2 id="Chernoff-Hoeffding-bound"><a href="#Chernoff-Hoeffding-bound" class="headerlink" title="Chernoff-Hoeffding bound"></a>Chernoff-Hoeffding bound</h2><p>之前Chernoff bound的推导是在$X_i$为独立同分布的Bernoulli随机变量的假定下进行的，现在我们把上述bound推广到$X_i$是<strong>任意$[0,1]$间的独立随机变量</strong>的情况。首先考虑$X_i$是独立但<strong>非</strong>同分布的Bernoulli随机变量的情况。此时$X$的moment-generating function变为</p>
+<p>$$E[e^{\lambda X}] = \prod_i(p_ie^\lambda+q_i)$$</p>
+<p>根据<a href="https://en.wikipedia.org/wiki/Inequality_of_arithmetic_and_geometric_means" target="_blank" rel="external">Arithmetic-Geometric Mean Inequality</a>易得</p>
+<p>\begin{align}<br>E[e^{\lambda X}] &amp;= \prod_i(p_ie^\lambda+q_i) \\<br>&amp;\leq\left(\frac{\sum_i(p_ie^\lambda+q_i)}{n}\right)^n \\<br>&amp;= (pe^\lambda+q)^n<br>\end{align}</p>
+<p>其中$p=\sum_ip_i/n, q=1-p$. 易见此时bound又变回了之前独立同分布时的形式，因此上一节得到的bound依然成立。</p>
+<p>接下来考虑$X_i$是$[0,1]$上任意（既可以是离散也可以是连续的）独立随机变量的情况，使用的技巧是由Hoeffding提出的，因此最后得到的bound也叫Chernoff-Hoeffding bound。这里要利用函数$e^{\lambda x}$的凸性：在区间$[0,1]$上，$e^{\lambda x}$的图像总在连接点$(0,1)$及$(1,e^\lambda)$的直线之下。该直线的方程为$y=(e^\lambda-1)x+1$，因此有</p>
+<p>$$E[e^{\lambda X_i}] \leq E[(e^\lambda-1)X_i+1] = p_ie^\lambda+q_i$$</p>
+<p>故有</p>
+<p>$$E[e^{\lambda X}] \leq \prod_i E[e^{\lambda X_i}] \leq \prod_i(p_ie^\lambda+q_i)$$</p>
+<p>这与前述$X_i$是独立非同分布Bernoulli随机变量的情况一致，因此上一节得到的bound依然成立。</p>
+<h2 id="Variance-bound"><a href="#Variance-bound" class="headerlink" title="Variance bound"></a>Variance bound</h2><p>之前得到的bound都只利用了一阶矩（期望）的信息，作为Chernoff bounding technique的一个简单应用，我们考虑引入二阶矩（方差）的信息。这里的关键技巧是利用不等式$e^x\leq1+x+x^2, (0&lt;|x|&lt;1)$为moment-generating function构造上界，从而引入二阶矩（$x^2$）。设$\mu_i=E[X_i], \mu=E[X]$，易知</p>
+<p>\begin{align}<br>\Pr[X&gt;\mu+t] &amp;= \Pr[\sum_i(X_i-\mu_i)&gt;t] \\<br>&amp;= \Pr[e^{\lambda\sum_i (X_i-\mu_i)}&gt;e^{\lambda t}] \\<br>&amp;\leq E[e^{\lambda\sum_i(X_i-\mu_i)}]/e^{\lambda t}<br>\end{align}</p>
+<p>利用之前提到的不等式及$e^x\geq1+x$，并假设$\forall i\in[n], \text{max}(\mu_i,1-\mu_i)&lt;1/\lambda$，有</p>
+<p>\begin{align}<br>E[e^{\lambda\sum_i(X_i-\mu_i)}] &amp;= \prod_iE[e^{\lambda(X_i-\mu_i)}] \\<br>&amp;\leq \prod_i E[1+\lambda(X_i-\mu_i)+\lambda^2(X_i-\mu_i)^2] \\<br>&amp;= \prod_i(1+\lambda^2\sigma_i^2) \\<br>&amp;\leq \prod_ie^{\lambda^2\sigma_i^2} \\<br>&amp;= e^{\lambda^2\sigma^2}<br>\end{align}</p>
+<p>其中$\sigma_i^2,\sigma^2$分别是$X_i,X$的方差。综上，有</p>
+<p>$$\Pr[X&gt;\mu+t] \leq e^{\lambda^2\sigma^2}/e^{\lambda t}$$</p>
+<p>针对$\lambda&lt;\text{max}(\mu_i,1-\mu_i)$最小化该上界，易知当$\lambda=t/2\sigma^2$时有</p>
+<p>$$\Pr[X&gt;\mu+t] \leq \text{exp}\left(\frac{-t^2}{4\sigma^2}\right)$$</p>
+<p>其中$t&lt;2\sigma^2/(\text{max}_i\ \text{max}(\mu_i, 1-\mu_i))$</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://xyguo.github.io/2016/09/22/chernoff-hoeffding/" data-id="cj3e7fp0r000v9v4k7ha58jjf" class="article-share-link">Share</a>
+      
+        <a href="http://xyguo.github.io/2016/09/22/chernoff-hoeffding/#disqus_thread" class="article-comment-link">Comments</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/math/">math</a></li></ul>
 
     </footer>
   </div>
@@ -370,7 +450,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://xyguo.github.io/2016/03/26/mit-distributed-system-course-summary/" data-id="ciwwxrtwg000y4r4k3olo7b0f" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2016/03/26/mit-distributed-system-course-summary/" data-id="cj3e7fp17001c9v4kr8ab5mty" class="article-share-link">Share</a>
       
         <a href="http://xyguo.github.io/2016/03/26/mit-distributed-system-course-summary/#disqus_thread" class="article-comment-link">Comments</a>
       
@@ -445,7 +525,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://xyguo.github.io/2016/03/21/Python-generators-coroutines-and-asyncio-library-2/" data-id="ciwwxrtvz000o4r4km1qnhek3" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2016/03/21/Python-generators-coroutines-and-asyncio-library-2/" data-id="cj3e7fp0a000n9v4ktugaabn1" class="article-share-link">Share</a>
       
         <a href="http://xyguo.github.io/2016/03/21/Python-generators-coroutines-and-asyncio-library-2/#disqus_thread" class="article-comment-link">Comments</a>
       
@@ -520,7 +600,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://xyguo.github.io/2016/03/20/Python-generators-coroutines-and-asyncio-library-1/" data-id="ciwwxrtvs000i4r4k36bfr7j9" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2016/03/20/Python-generators-coroutines-and-asyncio-library-1/" data-id="cj3e7fp06000j9v4kdgtrb6bp" class="article-share-link">Share</a>
       
         <a href="http://xyguo.github.io/2016/03/20/Python-generators-coroutines-and-asyncio-library-1/#disqus_thread" class="article-comment-link">Comments</a>
       
@@ -569,8 +649,7 @@
 <hr>
 <h1 id="Proof"><a href="#Proof" class="headerlink" title="Proof"></a>Proof</h1><p>我们用一个称为“无穷下降”的技巧来证明这个问题：所谓“无穷下降”，就是说假设整数$A$满足某个性质$P$，通过一些变换，我们可以得到一个整数$A’&lt;A$也满足$P$，依次类推就可以构造出一个无穷下降的整数列。当$A$的定义域是正整数集合时，由于不存在无穷下降的正整数列，就可以得到一个矛盾。</p>
 <p>反证法：假设存在正整数$a$、$b$使$\frac{a^2+b^2}{ab+1}$<strong>不是</strong>完全平方数，在所有满足上述条件的$a$、$b$中选一对使$a+b$<strong>最小</strong>的，并设$k=\frac{a^2+b^2}{ab+1}$。<br>由于这里$a$、$b$的角色完全是对称的，因此不妨假设$a\geq b$，由$k=\frac{a^2+b^2}{ab+1}$知<br>$$<br>a^2−kba+(b^2−k)=0<br>$$<br>也即$a$是下述二次方程<br>$$<br>X^2-kbX+(b^2-k)=0<br>$$<br>的一个根。</p>
-<p><strong>证明的关键思路在上述方程的另一个根身上</strong>：设另一个根为$a’$，则由二次方程根的性质有</p>
-<p>$$a+a’=kb$$<br>及<br>$$aa’=b^2-k$$</p>
+<p><strong>证明的关键思路在上述方程的另一个根身上</strong>：设另一个根为$a’$，则由二次方程根的性质有<br>\begin{align}<br>&amp; a+a’=kb \\<br>&amp; aa’=b^2-k<br>\end{align}</p>
 <p>通过上面两个式子我们可以得到几个结论：</p>
 <ul>
 <li>由$a+a’=kb$知$a’$是整数</li>
@@ -584,7 +663,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://xyguo.github.io/2016/02/22/A-Superhard-Elementary-Math-Problem/" data-id="ciwwxrtv900084r4kxzmcnmhj" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2016/02/22/A-Superhard-Elementary-Math-Problem/" data-id="cj3e7fp03000h9v4ke5qwfqsk" class="article-share-link">Share</a>
       
         <a href="http://xyguo.github.io/2016/02/22/A-Superhard-Elementary-Math-Problem/#disqus_thread" class="article-comment-link">Comments</a>
       
@@ -675,7 +754,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://xyguo.github.io/2016/02/20/numpy-with-cython/" data-id="ciwwxrtw6000r4r4kpf5cs93e" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2016/02/20/numpy-with-cython/" data-id="cj3e7fp1500199v4k03c63xzs" class="article-share-link">Share</a>
       
         <a href="http://xyguo.github.io/2016/02/20/numpy-with-cython/#disqus_thread" class="article-comment-link">Comments</a>
       
@@ -786,7 +865,7 @@ for (i=0; i&lt;4; i++) {
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://xyguo.github.io/2016/02/20/debug-linux-0.11-2/" data-id="ciwwxrtvw000m4r4kpadv8qvf" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2016/02/20/debug-linux-0.11-2/" data-id="cj3e7fp0h000p9v4kd95vm7a0" class="article-share-link">Share</a>
       
         <a href="http://xyguo.github.io/2016/02/20/debug-linux-0.11-2/#disqus_thread" class="article-comment-link">Comments</a>
       
@@ -947,7 +1026,7 @@ Loading system ...
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://xyguo.github.io/2016/02/20/debug-linux-0.11-1/" data-id="ciwwxrtvg000a4r4ktw53ahok" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2016/02/20/debug-linux-0.11-1/" data-id="cj3e7fp0l000r9v4kvkfojhbb" class="article-share-link">Share</a>
       
         <a href="http://xyguo.github.io/2016/02/20/debug-linux-0.11-1/#disqus_thread" class="article-comment-link">Comments</a>
       
@@ -1166,7 +1245,7 @@ Couldn&apos;t stat root device.
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://xyguo.github.io/2016/02/20/compile-linux-0.11/" data-id="ciwwxrtvm000f4r4kn7cg17kh" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2016/02/20/compile-linux-0.11/" data-id="cj3e7fp0x000y9v4kll7ayv0r" class="article-share-link">Share</a>
       
         <a href="http://xyguo.github.io/2016/02/20/compile-linux-0.11/#disqus_thread" class="article-comment-link">Comments</a>
       
@@ -1180,97 +1259,11 @@ Couldn&apos;t stat root device.
 
 
   
-    <article id="post-emacs-newbie" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2016/02/20/emacs-newbie/" class="article-date">
-  <time datetime="2016-02-20T02:29:22.000Z" itemprop="datePublished">2016-02-20</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/programming/">programming</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2016/02/20/emacs-newbie/">Emacs配置文件——新手攻略</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>用Emacs好一段时间了，由于自己一向懒得折腾，以前用的配置文件直接就是从<a href="https://github.com/purcell/emacs.d" target="_blank" rel="external">Steve Purcell那里</a>fork过来的。但是由于Steve Purcell主要做前端，所以配置文件里各种针对HTML、JavaScript、Ruby之类的插件（虽然绝大部分都被我注释掉了），还有万恶的flymake等我完全用不上的东西。身为一个强迫症患者，这样存在大量冗余的配置文件我实在是忍无可忍了，最近又刚好有时间，遂决心自己从头配过一个简单点的版本：</p>
-<ol>
-<li>必须保留Purcell的配置里我用的顺手的东西，包括广大群众喜闻乐见的<a href="https://github.com/auto-complete/auto-complete" target="_blank" rel="external">auto-complete</a>，<a href="https://github.com/capitaomorte/yasnippet" target="_blank" rel="external">yasnippet</a>，以及极大提升生活质量的<a href="https://github.com/DarwinAwardWinner/ido-ubiquitous" target="_blank" rel="external">ido-ubiquitous</a>和<a href="https://github.com/nonsequitur/smex" target="_blank" rel="external">smex</a>。</li>
-<li>就整个结构来说，Purcell的配置可以称得上是清晰明了，尽管整个配置体积比较庞大，但不会让人晕头转向，各初始化文件的功能划分的很明确，耦合的地方少，文件的命名也很讲究，基本一看就知道是在干啥。<strong>作为新手，Purcell的配置文件是最好不过的模仿对象了</strong>。</li>
-<li>根据我个人的需求，需要插件提供对C/C++、Matlab/Mathematica、Python、R、LaTeX/Markdown的增强支持。</li>
-</ol>
-<p>本人的系统环境如下：</p>
-<ul>
-<li>Debian sid，x86_64，内核版本3.14</li>
-<li>GNU Emacs 24.3.1</li>
-<li>clang 3.2-11</li>
-</ul>
-<h2 id="整个配置文件目录的结构"><a href="#整个配置文件目录的结构" class="headerlink" title="整个配置文件目录的结构"></a>整个配置文件目录的结构</h2><p>首先，Emacs的初始化文件可以有<a href="http://www.emacswiki.org/emacs/InitFile" target="_blank" rel="external">两种设置方法</a>：</p>
-<ol>
-<li>使用单个文件：<code>~/.emacs</code>。这种方法把所有初始化函数放在一个文件里，设置起来简单，但是一旦插件多了这个文件就会变得很长很乱。</li>
-<li>使用目录：<code>~/.emacs.d/</code>。所有配置文件都放在该目录下，并且Emacs启动时会自动执行该目录下名为<code>init.el</code>的文件。虽说只有一个文件会被自动执行，但可以在<code>init.el</code>里执行其它的函数，所以<code>init.el</code>可以变得很简洁；使用Emacs的<a href="http://www.emacswiki.org/emacs/RequiredFeature" target="_blank" rel="external">Feature</a>机制，可以很方便地把具体的初始化工作按类别分在其余文件中。<strong>这也是我选择的方法</strong></li>
-</ol>
-<p>我自己的配置放在<a href="https://github.com/xyguo/emacs.d" target="_blank" rel="external">这里</a>，目录结构如下（注意其中<code>elpa/</code>目录没有被push到github上）：</p>
-<figure class="highlight nsis"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">~/.emacs.d/</div><div class="line">       README.md  <span class="comment">#请无视该文件</span></div><div class="line">       init.el    <span class="comment">#Emacs会自动从init.el开始执行</span></div><div class="line">       snippets/  <span class="comment">#yasnippet的自定义模板保存的位置，不重要</span></div><div class="line">       elpa/      <span class="comment">#通过ELPA下载的插件所保存的位置</span></div><div class="line">       lisp/      <span class="comment">#就是加载各个插件的初始化文件的位置啦</span></div><div class="line">           init-xxx.el       <span class="comment">#某初始化文件</span></div><div class="line">           editing-utils/    <span class="comment">#文本编辑用的一些小工具</span></div><div class="line">           <span class="literal">custom</span>-themes/    <span class="comment">#自定义的主题，不重要</span></div><div class="line">           <span class="literal">custom</span>-dicts/     <span class="comment">#自定义的auto-complete词典，不重要</span></div></pre></td></tr></table></figure>
-<h2 id="init-el"><a href="#init-el" class="headerlink" title="init.el"></a>init.el</h2><p>主要就是下面几句</p>
-<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">;; init.el</div><div class="line"></div><div class="line">;; 把目录lisp/添加到搜索路径中去</div><div class="line">(add-to-list</div><div class="line">    'load-path </div><div class="line">    (expand-file-name "lisp" user-emacs-directory))</div><div class="line"></div><div class="line">;; 下面每一个被require的feature都对应一个lisp/目录下的同名</div><div class="line">;; elisp文件，例如init-utils.el、init-elpa.el</div><div class="line">(require 'init-utils)   ;; 为加载初始化文件提供一些自定义的函数和宏</div><div class="line">(require 'init-elpa)    ;; 加载ELPA，并定义了require-package函数</div><div class="line">(require 'init-fonts)   ;; 以Server-Client模式启动时需额外设置字体</div><div class="line">(require 'init-editing-utils)  ;; 一些顺手的小工具</div><div class="line"> ...</div><div class="line">(require 'init-markdown)</div><div class="line">(require 'init-auctex)</div><div class="line"></div><div class="line">(provide 'init)</div></pre></td></tr></table></figure>
-<h2 id="init-utils-el"><a href="#init-utils-el" class="headerlink" title="init-utils.el"></a>init-utils.el</h2><p>最主要的作用是提供了一个宏<code>after-load</code>，供后续的各初始化函数使用。这个函数来自<a href="https://github.com/purcell/emacs.d/blob/master/lisp/init-utils.el" target="_blank" rel="external">Purcell</a>，目的是把一些相互依赖的feature的加载顺序理顺，例如feature A依赖于feature B，则可以写成<code>(after-load &#39;B &#39;A)</code>，这样如果错误地在B之前require了A也不会影响正常启动。</p>
-<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="comment">;; after-load</span></div><div class="line">(<span class="name">defmacro</span> after-load (<span class="name">feature</span> <span class="symbol">&amp;rest</span> body)</div><div class="line">  <span class="string">"After FEATURE is loaded, evaluate BODY."</span></div><div class="line">  (<span class="name">declare</span> (<span class="name">indent</span> defun))</div><div class="line">  `(eval-after-load ,feature</div><div class="line">     '(progn ,@body)))</div></pre></td></tr></table></figure>
-<h2 id="init-elpa-el"><a href="#init-elpa-el" class="headerlink" title="init-elpa.el"></a>init-elpa.el</h2><p>这个文件我也是从<a href="https://github.com/purcell/emacs.d/blob/master/lisp/init-elpa.el" target="_blank" rel="external">Purcell</a>那里截取过来的，但是去掉了很多用不上的函数。该文件主要工作是初始化Emacs的包管理系统<a href="http://www.emacswiki.org/emacs/ELPA" target="_blank" rel="external">ELPA</a>，你可以把ELPA类比为Emacs的软件源，就像Debian、Ubuntu之类的软件源一样。需要注意的是，<strong>仅从Emacs24开始默认支持ELPA</strong>，如果Emacs版本过低，建议升级一下；但如果使用的是Emacs23，也可以从<a href="https://github.com/technomancy/package.el" target="_blank" rel="external">这里</a>下载<code>package.el</code>放在<code>lisp/</code>目录下，然后在<code>init-elpa.el</code>中加入如下代码:</p>
-<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">(require 'package)</div><div class="line">(add-to-list 'package-archives </div><div class="line">    '("marmalade" .</div><div class="line">      "http://marmalade-repo.org/packages/"))</div><div class="line">  ....</div><div class="line">;;这一句放在(provide 'init-elpa)之前</div><div class="line">(package-initialize)</div></pre></td></tr></table></figure>
-<p><code>init-elpa</code>的关键内容如下：</p>
-<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line"><span class="comment">;; init-elpa.el</span></div><div class="line"></div><div class="line">(<span class="name">require</span> 'package)</div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">;; 增加软件包仓库</span></div><div class="line">(<span class="name">add-to-list</span> 'package-archives '(<span class="string">"org"</span> . <span class="string">"http://orgmode.org/elpa/"</span>))</div><div class="line"></div><div class="line">(<span class="name">when</span> (<span class="name">&lt;</span> emacs-major-version <span class="number">24</span>)</div><div class="line">  (<span class="name">add-to-list</span> 'package-archives '(<span class="string">"gnu"</span> . <span class="string">"http://elpa.gnu.org/packages/"</span>)))</div><div class="line"></div><div class="line">(<span class="name">add-to-list</span> 'package-archives '(<span class="string">"melpa"</span> . <span class="string">"http://melpa.milkbox.net/packages/"</span>))</div><div class="line">(<span class="name">add-to-list</span> 'package-archives '(<span class="string">"melpa-stable"</span> . <span class="string">"http://melpa-stable.milkbox.net/packages/"</span>))</div><div class="line"></div><div class="line"><span class="comment">;; 定义require-package函数</span></div><div class="line">(<span class="name">defun</span> require-package (<span class="name">package</span> <span class="symbol">&amp;optional</span> min-version no-refresh)</div><div class="line">  <span class="string">"Install given PACKAGE, optionally requiring MIN-VERSION.</span></div><div class="line">If NO-REFRESH is non-nil, the available package lists will not be</div><div class="line">re-downloaded in order to locate PACKAGE."</div><div class="line">  (<span class="name">if</span> (<span class="name">package-installed-p</span> package min-version)</div><div class="line">      <span class="literal">t</span></div><div class="line">    (<span class="name">if</span> (<span class="name">or</span> (<span class="name">assoc</span> package package-archive-contents) no-refresh)</div><div class="line">        (<span class="name">package-install</span> package)</div><div class="line">      (<span class="name">progn</span></div><div class="line">        (<span class="name">package-refresh-contents</span>)</div><div class="line">        (<span class="name">require-package</span> package min-version <span class="literal">t</span>)))))</div><div class="line"></div><div class="line"><span class="comment">;; 强行提前初始化ELPA。因为默认情况下Emacs在init.el加载完之后才开始初始化ELPA，</span></div><div class="line"><span class="comment">;; 而我们把大多数包的初始化函数都放在init.el中，如果不提前初始化ELPA会导致后面的</span></div><div class="line"><span class="comment">;; 初始化过程出错（对应的包文件还没有加载进来）。</span></div><div class="line">(<span class="name">package-initialize</span>)</div><div class="line">(<span class="name">provide</span> 'init-elpa)</div></pre></td></tr></table></figure>
-<p><code>require-package</code>函数的作用是，判断某个包是否已经安装，如果没有则自动从ELPA中安装它（需要联网）。当然，对于自定义的插件或是没有被ELPA收录的插件，这个函数就不起作用了。</p>
-<p>有了ELPA，给Emacs装插件就变的非常容易了。比方说你需要一个叫<code>example</code>的插件，那么可以在<code>lisp/</code>目录下增加一个文件<code>init-example.el</code>：</p>
-<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment">;; init-example.el</span></div><div class="line"></div><div class="line">(<span class="name">require-package</span> 'example)</div><div class="line"></div><div class="line"><span class="comment">;; ELPA中的插件一般都提供一个"autoloads"方法，可以帮用户自动加载插件并做相应</span></div><div class="line"><span class="comment">;; 的配置。不过如果涉及到细节的配置，那请自己看该插件的帮助文档。</span></div><div class="line">(<span class="name">require</span> 'example-autoloads)</div><div class="line">(<span class="name">provide</span> 'init-example)</div></pre></td></tr></table></figure>
-<p>然后在<code>init.el</code>中加入一句<code>(require &#39;init-example)</code>(注意这一句要放在<code>(require &#39;init-elpa)</code>之后)即可。</p>
-<h2 id="init-auto-complete-el"><a href="#init-auto-complete-el" class="headerlink" title="init-auto-complete.el"></a>init-auto-complete.el</h2><p><a href="https://github.com/auto-complete/auto-complete" target="_blank" rel="external">auto-complete</a>是必不可少的Emacs插件之一，它的问题主要集中在设置触发补全动作的快捷键及添加<code>ac-sources</code>上。默认情况下补全动作是自动触发的，但是如果用了clang之类的扩展，第一次触发可能需要比较久的时间（在构造ac-source），于是给人一种卡出翔的错觉。所以需要将补全动作改为手动触发。<code>ac-sources</code>是<code>auto-complete</code>在补全时自动搜索的模板空间，被补全的半单词会自动在<code>ac-sources</code>里面进行匹配。根据所编辑文件类型的不同，<code>ac-sources</code>最好也不同（例如我在补全C语言关键字的时候<code>auto-complete</code>就不应该去匹配Python的关键字），因此常见的做法是给每个主模式的hook上挂一个函数，由该函数来执行修改<code>ac-sources</code>的工作（具体可见<a href="">init-ac-source.el</a>中的函数<code>ac-latex-mode-setup</code>)。</p>
-<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line">;; init-auto-complete.el</div><div class="line"></div><div class="line">...</div><div class="line"></div><div class="line">(require 'auto-complete-config)</div><div class="line">(global-auto-complete-mode t)</div><div class="line"></div><div class="line">;; 把自定义的dict加到auto-complete的字典中去</div><div class="line">(add-to-list 'ac-dictionary-directories</div><div class="line">             (expand-file-name "lisp/custom-dicts" user-emacs-directory))</div><div class="line"></div><div class="line">;; 按下TAB时首先缩进所在行，然后尝试补全</div><div class="line">(setq tab-always-indent 'complete)</div><div class="line"></div><div class="line">;; 阻止自动触发补全动作</div><div class="line">(setq-default ac-expand-on-auto-complete nil)</div><div class="line">(setq-default ac-auto-start nil)</div><div class="line">;; 用TAB作为手动触发补全动作的快捷键</div><div class="line">(ac-set-trigger-key "TAB")</div><div class="line"></div><div class="line">;; 使用after-load来确保ac-source-yasnippet已经完成加载</div><div class="line">(after-load 'init-yasnippet</div><div class="line">  (set-default 'ac-sources</div><div class="line">             '(ac-source-dictionary</div><div class="line">               ac-source-words-in-buffer</div><div class="line">               ac-source-words-in-same-mode-buffers</div><div class="line">               ac-source-words-in-all-buffer</div><div class="line">               ac-source-functions</div><div class="line">               ac-source-yasnippet)))</div><div class="line"></div><div class="line">(require 'init-ac-source)</div><div class="line">(provide 'init-auto-complete)</div></pre></td></tr></table></figure>
-<h2 id="init-yasnippet-el"><a href="#init-yasnippet-el" class="headerlink" title="init-yasnippet.el"></a>init-yasnippet.el</h2><p><a href="https://github.com/capitaomorte/yasnippet" target="_blank" rel="external">yasnippet</a>是<code>auto-complete</code>的最好搭配。它的触发快捷键包括TAB，这和之前设置的<code>auto-complete</code>的键位冲突，所以做如下配置：</p>
-<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">(<span class="name">require-package</span> 'yasnippet)</div><div class="line">(<span class="name">require</span> 'yasnippet)</div><div class="line"><span class="comment">;; 使用Ctrl-c k作为唯一的触发快捷键</span></div><div class="line">(<span class="name">define-key</span> yas-minor-mode-map (<span class="name">kbd</span> <span class="string">"&lt;tab&gt;"</span>) <span class="literal">nil</span>)</div><div class="line">(<span class="name">define-key</span> yas-minor-mode-map (<span class="name">kbd</span> <span class="string">"TAB"</span>) <span class="literal">nil</span>)</div><div class="line">(<span class="name">define-key</span> yas-minor-mode-map (<span class="name">kbd</span> <span class="string">"C-c k"</span>) 'yas-expand)</div><div class="line"></div><div class="line">(<span class="name">yas-global-mode</span> <span class="literal">t</span>)</div><div class="line"></div><div class="line">(<span class="name">provide</span> 'init-yasnippet)</div></pre></td></tr></table></figure>
-<h2 id="init-ac-source-el-clang"><a href="#init-ac-source-el-clang" class="headerlink" title="init-ac-source.el : clang"></a>init-ac-source.el : clang</h2><p><a href="http://clang.llvm.org/" target="_blank" rel="external">clang</a>是一个C/C++、Obj-C/Obj-C++的编译器前端，利用它可以<code>auto-complete</code>能够补全C/C++的各种标准库函数。首先需要有<a href="https://github.com/brianjcj/auto-complete-clang" target="_blank" rel="external">auto-complete-clang</a>，然后把系统中各头文件的路径告诉它：</p>
-<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">(<span class="name">require-package</span> 'auto-complete-clang)</div><div class="line">(<span class="name">require</span> 'auto-complete-clang)</div><div class="line">(<span class="name">setq</span> ac-clang-flags</div><div class="line">      (<span class="name">mapcar</span> (<span class="name">lambda</span> (<span class="name">item</span>) (<span class="name">concat</span> <span class="string">"-I"</span> item))</div><div class="line">              (<span class="name">split-string</span></div><div class="line">               <span class="string">"</span></div><div class="line"> /usr/include/c++/4.8</div><div class="line"> /usr/include/x86_64-linux-gnu/c++/4.8</div><div class="line"> /usr/include/c++/4.8/backward</div><div class="line"> /usr/lib/gcc/x86_64-linux-gnu/4.8/include</div><div class="line"> /usr/local/include</div><div class="line"> /usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed</div><div class="line"> /usr/include/x86_64-linux-gnu</div><div class="line"> /usr/include</div><div class="line">"</div><div class="line">               )))</div></pre></td></tr></table></figure>
-<p>上述路径可以通过命令<code>echo &quot;&quot; | g++ -v -x c++ -E -</code>来得到（详细说明见<a href="https://github.com/brianjcj/auto-complete-clang" target="_blank" rel="external">这里</a>)。</p>
-<h2 id="使用Server-Client的方法来“加速”Emacs的启动"><a href="#使用Server-Client的方法来“加速”Emacs的启动" class="headerlink" title="使用Server-Client的方法来“加速”Emacs的启动"></a>使用Server-Client的方法来“加速”Emacs的启动</h2><p>插件多了Emacs的启动速度就会很慢，为了掩盖（没错，就是掩盖，不是解决…）这个问题，可以用Server-Client的方法营造一种启动很快的错觉，用开机速度换Emacs的启动速度。</p>
-<p>具体原理是，开机的时候以daemon模式启动emacs（这时就会进行插件的加载，并执行初始化文件），让它作为server运行在后台，之后再打开Emacs的时候就以client的形式调用，此时它会直接连接到在后台运行的server上，然后server给你一个窗口编辑文件。由于初始化过程已经在启动server时完成了，启动client的时候几乎是秒开。</p>
-<p>需要注意的问题是，GTK版本的Emacs以daemon模式启动时，由于一个<a href="https://bugzilla.gnome.org/show_bug.cgi?id=85715" target="_blank" rel="external">Gtk+的Bug</a>，emacsclient可能会时不时地崩溃。解决这个问题的办法是换用<strong>emacs24-lucid</strong>（可以从Debian的源里安装）绕过它。</p>
-<p>具体为，开机的时候启动加载下述脚本：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#! /bin/sh</span></div><div class="line">LC_CTYPE=zh_CN.utf8 emacs24-lucid --daemon</div></pre></td></tr></table></figure>
-<p>然后给<code>emacs</code>命令加条alias：<code>emacsclient -a &quot;&quot; -c</code>即可。另外，根据<a href="http://emacser.com/daemon.htm" target="_blank" rel="external">这篇文章</a>，由于启动server的时候是以daemon模式启动的，初始化文件中所有与X有关的设置都失效了。<em>这是因为这些设置是在X下的frame创建时才有效的，而启动服务器的时候是没有创建frame的</em>。在我的机子上，就表现为使用client创建frame后字体奇丑无比，因此使用下述函数来设置字体：</p>
-<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="comment">;; init-fonts.el</span></div><div class="line"></div><div class="line">(<span class="name">setq</span> window-system-default-frame-alist</div><div class="line">      '((x (font . <span class="string">"文泉驿等宽微米黑 11"</span>)) ;; 若frame在X下创建</div><div class="line">        (<span class="literal">nil</span>))) <span class="comment">;; 若frame在terminal中创建</span></div><div class="line"></div><div class="line">(<span class="name">provide</span> 'init-fonts)</div></pre></td></tr></table></figure>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文只是介绍了我认为的配置过程中几个比较重要的文件。全部配置文件可以在<a href="https://github.com/xyguo/emacs.d" target="_blank" rel="external">我的github repository</a>中查看。如果你懒得配置，可以直接clone或fork它。</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://xyguo.github.io/2016/02/20/emacs-newbie/" data-id="ciwwxrtwb000t4r4kxroz88ox" class="article-share-link">Share</a>
-      
-        <a href="http://xyguo.github.io/2016/02/20/emacs-newbie/#disqus_thread" class="article-comment-link">Comments</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Emacs/">Emacs</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
 
 
-  
-
+  <nav id="page-nav">
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/">__('next') &raquo;</a>
+  </nav>
 </section>
         
           <aside id="sidebar">
@@ -1299,7 +1292,7 @@ Couldn&apos;t stat root device.
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Emacs/" style="font-size: 10px;">Emacs</a> <a href="/tags/Linux-Kernel/" style="font-size: 20px;">Linux Kernel</a> <a href="/tags/distributed-system/" style="font-size: 10px;">distributed-system</a> <a href="/tags/math/" style="font-size: 10px;">math</a> <a href="/tags/programming/" style="font-size: 10px;">programming</a> <a href="/tags/puzzle/" style="font-size: 10px;">puzzle</a> <a href="/tags/python/" style="font-size: 20px;">python</a> <a href="/tags/writing/" style="font-size: 10px;">writing</a>
+      <a href="/tags/Emacs/" style="font-size: 10px;">Emacs</a> <a href="/tags/Linux-Kernel/" style="font-size: 20px;">Linux Kernel</a> <a href="/tags/distributed-system/" style="font-size: 10px;">distributed-system</a> <a href="/tags/math/" style="font-size: 15px;">math</a> <a href="/tags/programming/" style="font-size: 10px;">programming</a> <a href="/tags/puzzle/" style="font-size: 10px;">puzzle</a> <a href="/tags/python/" style="font-size: 20px;">python</a> <a href="/tags/writing/" style="font-size: 10px;">writing</a>
     </div>
   </div>
 
@@ -1308,7 +1301,7 @@ Couldn&apos;t stat root device.
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">September 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a></li></ul>
     </div>
   </div>
 
@@ -1325,6 +1318,10 @@ Couldn&apos;t stat root device.
           </li>
         
           <li>
+            <a href="/2016/09/22/chernoff-hoeffding/">Chernoff-Hoeffding Bound</a>
+          </li>
+        
+          <li>
             <a href="/2016/03/26/mit-distributed-system-course-summary/">Summary for MIT 6.824- Course projects</a>
           </li>
         
@@ -1334,10 +1331,6 @@ Couldn&apos;t stat root device.
         
           <li>
             <a href="/2016/03/20/Python-generators-coroutines-and-asyncio-library-1/">Python coroutines and asyncio library (1)</a>
-          </li>
-        
-          <li>
-            <a href="/2016/02/22/A-Superhard-Elementary-Math-Problem/">A Superhard Elementary Math Problem</a>
           </li>
         
       </ul>
