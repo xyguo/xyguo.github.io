@@ -11,7 +11,7 @@
 <meta property="og:url" content="http://xyguo.github.io/2016/09/22/chernoff-hoeffding/index.html">
 <meta property="og:site_name" content="Coupon Collector">
 <meta property="og:description" content="基本的中心不等式">
-<meta property="og:updated_time" content="2017-06-01T11:09:59.000Z">
+<meta property="og:updated_time" content="2017-06-01T11:37:55.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Chernoff-Hoeffding Bound">
 <meta name="twitter:description" content="基本的中心不等式">
@@ -106,18 +106,18 @@
 </ul>
 <h2 id="Chernoff-Bound"><a href="#Chernoff-Bound" class="headerlink" title="Chernoff Bound"></a>Chernoff Bound</h2><p>Chernoff bounding technique指的是用moment-generating function来处理多个随机变量之和的期望的技巧。所谓moment-generating function被定义为随机变量$X$的指数函数的期望$E[e^{\lambda X}]$。</p>
 <p>先来看一个简单的例子：考虑<strong>独立同分布</strong>的Bernoulli随机变量 $X_i\sim \text{Bernoulli}(p)$ 及它们的和$X=\sum_{i\in[n]}X_i$，易见$X_i\sim \text{Binomial}(n, p)$。现在要估计$X$偏离其期望一定距离的概率，即$\Pr[X&gt;n(p+t)]$. 先考虑一个一般性的情况：估计$\Pr[X&gt;m]$. 由Markov不等式易得</p>
-<p>\begin{align}<br>\Pr[X&gt;m] &amp;= \Pr[e^{\lambda X}&gt;e^{\lambda m}] \\<br>&amp;\leq \frac{E[e^{\lambda X}]}{e^{\lambda m}}<br>\end{align}</p>
+<p>$$<br>\begin{align}<br>\Pr[X&gt;m] &amp;= \Pr[e^{\lambda X}&gt;e^{\lambda m}] \\<br>&amp;\leq \frac{E[e^{\lambda X}]}{e^{\lambda m}}<br>\end{align}<br>$$</p>
 <p>根据$X_i$的独立性，上述式子中的moment-generating function可写成</p>
-<p>\begin{align}<br>E[e^{\lambda X}] &amp;= E[e^{\lambda\sum_i X_i}] \\<br>&amp;= E[\prod_i e^{\lambda X_i}] \\<br>&amp;= \prod_i E[e^{\lambda X_i}] \\<br>&amp;= (pe^\lambda+q)^n<br>\end{align}</p>
+<p>$$<br>\begin{align}<br>E[e^{\lambda X}] &amp;= E[e^{\lambda\sum_i X_i}] \\<br>&amp;= E[\prod_i e^{\lambda X_i}] \\<br>&amp;= \prod_i E[e^{\lambda X_i}] \\<br>&amp;= (pe^\lambda+q)^n<br>\end{align}<br>$$</p>
 <p>其中$q=1-p$.再令$m=(p+t)n$，原不等式变为</p>
 <p>$$\Pr[X&gt;m]\leq\left(\frac{pe^\lambda+q}{e^{\lambda(p+t)}}\right)^n$$</p>
 <p>将上述不等式右边视为$\lambda$的函数，找一个$\lambda&gt;0$使右边最小，由此我们得到基本的Chernoff bound：</p>
-<p>\begin{align}<br>\Pr[X&gt;(p+t)n] &amp;\leq \left(\left(\frac{p}{p+t} \right)^{p+t} \left(\frac{q}{q-t}\right)^{q-t}\right)^n \\<br>&amp;= \left[\text{exp}\left(-(p+t)\text{ln}\frac{p+t}{p}-(q-t)\text{ln}\frac{q-t}{q}\right)\right]^n \\<br>&amp;= \text{exp}\left(-nD_{KL}(p+t||p)\right)<br>\end{align}</p>
+<p>$$<br>\begin{align}<br>\Pr[X&gt;(p+t)n] &amp;\leq \left(\left(\frac{p}{p+t} \right)^{p+t} \left(\frac{q}{q-t}\right)^{q-t}\right)^n \\<br>&amp;= \left[\text{exp}\left(-(p+t)\text{ln}\frac{p+t}{p}-(q-t)\text{ln}\frac{q-t}{q}\right)\right]^n \\<br>&amp;= \text{exp}\left(-nD_{KL}(p+t||p)\right)<br>\end{align}<br>$$</p>
 <p>其中$D_{KL}(\cdot||\cdot)$是<a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence" target="_blank" rel="external">KL-Divergence</a>.上述bound说明，当实际分布（的参数）是$(p,q)$时，观测到经验分布$(p+t,q-t)$的概率随着样本大小$n$的增加指数下降，且下降速率与实际分布及经验分布的KL-Divergence密切相关。</p>
 <h2 id="Chernoff-Hoeffding-bound"><a href="#Chernoff-Hoeffding-bound" class="headerlink" title="Chernoff-Hoeffding bound"></a>Chernoff-Hoeffding bound</h2><p>之前Chernoff bound的推导是在$X_i$为独立同分布的Bernoulli随机变量的假定下进行的，现在我们把上述bound推广到$X_i$是<strong>任意$[0,1]$间的独立随机变量</strong>的情况。首先考虑$X_i$是独立但<strong>非</strong>同分布的Bernoulli随机变量的情况。此时$X$的moment-generating function变为</p>
 <p>$$E[e^{\lambda X}] = \prod_i(p_ie^\lambda+q_i)$$</p>
 <p>根据<a href="https://en.wikipedia.org/wiki/Inequality_of_arithmetic_and_geometric_means" target="_blank" rel="external">Arithmetic-Geometric Mean Inequality</a>易得</p>
-<p>\begin{align}<br>E[e^{\lambda X}] &amp;= \prod_i(p_ie^\lambda+q_i) \\<br>&amp;\leq\left(\frac{\sum_i(p_ie^\lambda+q_i)}{n}\right)^n \\<br>&amp;= (pe^\lambda+q)^n<br>\end{align}</p>
+<p>$$<br>\begin{align}<br>E[e^{\lambda X}] &amp;= \prod_i(p_ie^\lambda+q_i) \\<br>&amp;\leq\left(\frac{\sum_i(p_ie^\lambda+q_i)}{n}\right)^n \\<br>&amp;= (pe^\lambda+q)^n<br>\end{align}<br>$$</p>
 <p>其中$p=\sum_ip_i/n, q=1-p$. 易见此时bound又变回了之前独立同分布时的形式，因此上一节得到的bound依然成立。</p>
 <p>接下来考虑$X_i$是$[0,1]$上任意（既可以是离散也可以是连续的）独立随机变量的情况，使用的技巧是由Hoeffding提出的，因此最后得到的bound也叫Chernoff-Hoeffding bound。这里要利用函数$e^{\lambda x}$的凸性：在区间$[0,1]$上，$e^{\lambda x}$的图像总在连接点$(0,1)$及$(1,e^\lambda)$的直线之下。该直线的方程为$y=(e^\lambda-1)x+1$，因此有</p>
 <p>$$E[e^{\lambda X_i}] \leq E[(e^\lambda-1)X_i+1] = p_ie^\lambda+q_i$$</p>
@@ -125,9 +125,9 @@
 <p>$$E[e^{\lambda X}] \leq \prod_i E[e^{\lambda X_i}] \leq \prod_i(p_ie^\lambda+q_i)$$</p>
 <p>这与前述$X_i$是独立非同分布Bernoulli随机变量的情况一致，因此上一节得到的bound依然成立。</p>
 <h2 id="Variance-bound"><a href="#Variance-bound" class="headerlink" title="Variance bound"></a>Variance bound</h2><p>之前得到的bound都只利用了一阶矩（期望）的信息，作为Chernoff bounding technique的一个简单应用，我们考虑引入二阶矩（方差）的信息。这里的关键技巧是利用不等式$e^x\leq1+x+x^2, (0&lt;|x|&lt;1)$为moment-generating function构造上界，从而引入二阶矩（$x^2$）。设$\mu_i=E[X_i], \mu=E[X]$，易知</p>
-<p>\begin{align}<br>\Pr[X&gt;\mu+t] &amp;= \Pr[\sum_i(X_i-\mu_i)&gt;t] \\<br>&amp;= \Pr[e^{\lambda\sum_i (X_i-\mu_i)}&gt;e^{\lambda t}] \\<br>&amp;\leq E[e^{\lambda\sum_i(X_i-\mu_i)}]/e^{\lambda t}<br>\end{align}</p>
+<p>$$<br>\begin{align}<br>\Pr[X&gt;\mu+t] &amp;= \Pr[\sum_i(X_i-\mu_i)&gt;t] \\<br>&amp;= \Pr[e^{\lambda\sum_i (X_i-\mu_i)}&gt;e^{\lambda t}] \\<br>&amp;\leq E[e^{\lambda\sum_i(X_i-\mu_i)}]/e^{\lambda t}<br>\end{align}<br>$$</p>
 <p>利用之前提到的不等式及$e^x\geq1+x$，并假设$\forall i\in[n], \text{max}(\mu_i,1-\mu_i)&lt;1/\lambda$，有</p>
-<p>\begin{align}<br>E[e^{\lambda\sum_i(X_i-\mu_i)}] &amp;= \prod_iE[e^{\lambda(X_i-\mu_i)}] \\<br>&amp;\leq \prod_i E[1+\lambda(X_i-\mu_i)+\lambda^2(X_i-\mu_i)^2] \\<br>&amp;= \prod_i(1+\lambda^2\sigma_i^2) \\<br>&amp;\leq \prod_ie^{\lambda^2\sigma_i^2} \\<br>&amp;= e^{\lambda^2\sigma^2}<br>\end{align}</p>
+<p>$$<br>\begin{align}<br>E[e^{\lambda\sum_i(X_i-\mu_i)}] &amp;= \prod_iE[e^{\lambda(X_i-\mu_i)}] \\<br>&amp;\leq \prod_i E[1+\lambda(X_i-\mu_i)+\lambda^2(X_i-\mu_i)^2] \\<br>&amp;= \prod_i(1+\lambda^2\sigma_i^2) \\<br>&amp;\leq \prod_ie^{\lambda^2\sigma_i^2} \\<br>&amp;= e^{\lambda^2\sigma^2}<br>\end{align}<br>$$</p>
 <p>其中$\sigma_i^2,\sigma^2$分别是$X_i,X$的方差。综上，有</p>
 <p>$$\Pr[X&gt;\mu+t] \leq e^{\lambda^2\sigma^2}/e^{\lambda t}$$</p>
 <p>针对$\lambda&lt;\text{max}(\mu_i,1-\mu_i)$最小化该上界，易知当$\lambda=t/2\sigma^2$时有</p>
@@ -137,7 +137,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://xyguo.github.io/2016/09/22/chernoff-hoeffding/" data-id="cj3e7fp0r000v9v4k7ha58jjf" class="article-share-link">Share</a>
+      <a data-url="http://xyguo.github.io/2016/09/22/chernoff-hoeffding/" data-id="cj3ebn2uk000f5z4k925vl83n" class="article-share-link">Share</a>
       
         <a href="http://xyguo.github.io/2016/09/22/chernoff-hoeffding/#disqus_thread" class="article-comment-link">Comments</a>
       
@@ -150,11 +150,11 @@
     
 <nav id="article-nav">
   
-    <a href="/2017/02/19/english-writing-notes-on-style-book-1/" id="article-nav-newer" class="article-nav-link-wrap">
+    <a href="/2017/02/19/notes-on-style-book-ch3/" id="article-nav-newer" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Newer</strong>
       <div class="article-nav-title">
         
-          Reading notes on book &quot;Style - Lessons in Clarity and Grace&quot; -- Unit 3 - Actions
+          English writing - Actions
         
       </div>
     </a>
@@ -194,7 +194,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Emacs/">Emacs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/distributed-system/">distributed-system</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/math/">math</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/programming/">programming</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/puzzle/">puzzle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/writing/">writing</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Emacs/">Emacs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux-Kernel/">Linux Kernel</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/distributed-system/">distributed-system</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/math/">math</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/programming/">programming</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/puzzle/">puzzle</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/style-lessons-in-clarity-and-grace/">style-lessons-in-clarity-and-grace</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/writing/">writing</a></li></ul>
     </div>
   </div>
 
@@ -204,7 +204,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Emacs/" style="font-size: 10px;">Emacs</a> <a href="/tags/Linux-Kernel/" style="font-size: 20px;">Linux Kernel</a> <a href="/tags/distributed-system/" style="font-size: 10px;">distributed-system</a> <a href="/tags/math/" style="font-size: 15px;">math</a> <a href="/tags/programming/" style="font-size: 10px;">programming</a> <a href="/tags/puzzle/" style="font-size: 10px;">puzzle</a> <a href="/tags/python/" style="font-size: 20px;">python</a> <a href="/tags/writing/" style="font-size: 10px;">writing</a>
+      <a href="/tags/Emacs/" style="font-size: 10px;">Emacs</a> <a href="/tags/Linux-Kernel/" style="font-size: 20px;">Linux Kernel</a> <a href="/tags/distributed-system/" style="font-size: 10px;">distributed-system</a> <a href="/tags/math/" style="font-size: 15px;">math</a> <a href="/tags/programming/" style="font-size: 10px;">programming</a> <a href="/tags/puzzle/" style="font-size: 10px;">puzzle</a> <a href="/tags/python/" style="font-size: 20px;">python</a> <a href="/tags/style-lessons-in-clarity-and-grace/" style="font-size: 15px;">style-lessons-in-clarity-and-grace</a> <a href="/tags/writing/" style="font-size: 15px;">writing</a>
     </div>
   </div>
 
@@ -213,7 +213,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">September 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">September 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a></li></ul>
     </div>
   </div>
 
@@ -226,7 +226,11 @@
       <ul>
         
           <li>
-            <a href="/2017/02/19/english-writing-notes-on-style-book-1/">Reading notes on book &quot;Style - Lessons in Clarity and Grace&quot; -- Unit 3 - Actions</a>
+            <a href="/2017/06/05/notes-on-style-book-ch4/">English writing - Characters</a>
+          </li>
+        
+          <li>
+            <a href="/2017/02/19/notes-on-style-book-ch3/">English writing - Actions</a>
           </li>
         
           <li>
@@ -239,10 +243,6 @@
         
           <li>
             <a href="/2016/03/21/Python-generators-coroutines-and-asyncio-library-2/">Python coroutines and asyncio library (2)</a>
-          </li>
-        
-          <li>
-            <a href="/2016/03/20/Python-generators-coroutines-and-asyncio-library-1/">Python coroutines and asyncio library (1)</a>
           </li>
         
       </ul>
